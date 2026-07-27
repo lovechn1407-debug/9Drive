@@ -69,7 +69,7 @@ password: empty
 
 ## 1. Quick Setup & Installation (Recommended)
 
-The easiest way to set up and run the project is using the automated setup script. It automatically generates all environment files with secure keys, installs dependencies, handles Prisma migrations, and configures either **SQLite** (zero installation/config) or **MySQL**.
+The easiest way to prepare the project is using the automated setup script. It generates local environment files with secure keys, installs dependencies, and generates the Prisma client. MySQL 8+ must already be running for local development; Docker setup includes MySQL.
 
 ### Windows (PowerShell)
 Make sure to open PowerShell and navigate to the project directory first. For example, if you cloned the project to `E:\AUTO KLIK\9Drive`:
@@ -85,13 +85,24 @@ cd "E:\AUTO KLIK\9Drive"
 powershell -ExecutionPolicy Bypass -File .\setup.ps1
 ```
 
-
-1. **Database**: Choose **SQLite (Option 1)** for zero-configuration, or **MySQL (Option 2)**.
-2. **Google Credentials**: Enter Client ID/Secret or skip (press Enter) to set up later.
-
-Once setup is complete, run the entire application (both frontend and backend) in one command:
+### Linux/macOS
 
 ```bash
+bash ./setup.sh
+```
+
+Enter your MySQL connection URL when prompted. Google Client ID/Secret can be skipped and configured later.
+
+Once setup is complete, apply migrations and start backend and frontend in separate terminals:
+
+```bash
+cd backend
+npm run prisma:migrate
+npm run dev
+```
+
+```bash
+cd frontend
 npm run dev
 ```
 
