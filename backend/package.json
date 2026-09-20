@@ -6,6 +6,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "start:deploy": "node dist/server.js",
+    "db:migrate:deploy": "echo 'Bypassing Render migration...'",
     "prisma:generate": "prisma generate",
     "seed:google-config": "tsx src/scripts/seed-google-config.ts",
     "seed:google-config:docker": "tsx src/scripts/seed-google-config-if-present.ts",
