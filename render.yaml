@@ -30,3 +30,22 @@ services:
         sync: false
       - key: GOOGLE_REDIRECT_URI
         sync: false
+
+  # 9Drive React Web App (Frontend/Mobile site)
+  - type: web
+    name: ninedrive-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: ninedrive-backend
+          envVarKey: RENDER_EXTERNAL_URL
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
