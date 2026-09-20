@@ -5,6 +5,7 @@ services:
     env: node
     rootDir: backend
     buildCommand: npm install && npm run build
+    preDeployCommand: echo "Skipping DB migration"
     startCommand: npm run start
     autoDeploy: true
     envVars:
