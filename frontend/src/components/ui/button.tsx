@@ -1,35 +1,52 @@
-import * as React from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from '@/lib/utils'
+import { forwardRef } from 'react'
+import MuiButton, { type ButtonProps as MuiButtonProps } from '@mui/material/Button'
+import type { SxProps, Theme } from '@mui/material'
 
-const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50',
-  {
-    variants: {
-      variant: {
-        default: 'bg-blue-600 text-white shadow-[0_8px_18px_rgba(37,99,235,0.25)] hover:bg-blue-700',
-        outline: 'border border-slate-200 bg-white text-slate-950 shadow-sm hover:bg-slate-50',
-        ghost: 'text-slate-700 hover:bg-slate-100',
-        soft: 'bg-slate-100 text-slate-950 shadow-sm hover:bg-slate-200',
-        danger: 'text-orange-600 hover:bg-orange-50',
-      },
-      size: {
-        default: 'h-11 px-4 py-2',
-        sm: 'h-9 px-3',
-        icon: 'h-11 w-11',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-    },
-  },
-)
-
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
-
-export function Button({ className, variant, size, ...props }: ButtonProps) {
-  return <button className={cn(buttonVariants({ variant, size, className }))} {...props} />
+export interface ButtonProps extends Omit<MuiButtonProps, 'variant' | 'color'> {
+  variant?: 'default' | 'outline' | 'ghost' | 'soft' | 'danger' | 'fab'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
 }
+
+function mapVariant(v: ButtonProps['variant']): { variant: MuiButtonProps['variant']; color: MuiButtonProps['color']; sx?: SxProps<Theme> } {
+  switch (v) {
+    case 'outline': return { variant: 'outlined', color: 'primary' }
+    case 'ghost': return { variant: 'text', color: 'inherit' }
+    case 'soft': return { variant: 'contained', color: 'secondary', sx: { backgroundColor: 'secondary.light', color: 'secondary.dark', '&:hover': { backgroundColor: 'secondary.light', opacity: 0.85 } } }
+    case 'danger': return { variant: 'contained', color: 'error' }
+    case 'fab': return { variant: 'contained', color: 'secondary', sx: { borderRadius: 16 } }
+    default: return { variant: 'contained', color: 'primary' }
+  }
+}
+
+function mapSize(s: ButtonProps['size']): MuiButtonProps['size'] {
+  switch (s) {
+    case 'sm': return 'small'
+    case 'lg': return 'large'
+    case 'icon': return 'small'
+    default: return 'medium'
+  }
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ variant, size, sx, ...props }, ref) => {
+    const { variant: muiVariant, color, sx: variantSx } = mapVariant(variant)
+    const muiSize = mapSize(size)
+
+    const iconSx: SxProps<Theme> = size === 'icon'
+      ? { minWidth: 0, width: 40, height: 40, padding: 0, borderRadius: '50%' }
+      : {}
+
+    return (
+      <MuiButton
+        ref={ref}
+        variant={muiVariant}
+        color={color}
+        size={muiSize}
+        sx={{ ...variantSx, ...iconSx, ...sx }}
+        disableElevation
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = 'Button'

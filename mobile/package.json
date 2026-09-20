@@ -1,0 +1,21 @@
+{
+  "name": "9drive-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "9Drive Mobile App with Capacitor for Android",
+  "scripts": {
+    "build:web": "cd ../frontend && npm run build",
+    "cap:sync": "npm run build:web && cap sync android",
+    "cap:open": "cap open android",
+    "cap:run": "cap run android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.1",
+    "@capacitor/core": "^7.0.1",
+    "@capacitor/filesystem": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.1",
+    "typescript": "^7.0.2"
+  }
+}

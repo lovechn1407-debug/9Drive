@@ -1,17 +1,38 @@
 import type { ReactNode } from 'react'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
+import Stack from '@mui/material/Stack'
 
 export function PageHeader({ title, description, actions }: { title: ReactNode; description?: string; actions?: ReactNode }) {
   return (
-    <div className="mt-2.5 flex flex-col gap-2 sm:mt-3.5 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        <h1 className="text-lg font-extrabold tracking-tight sm:text-[22px] lg:text-[28px]">{title}</h1>
-        {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
-      </div>
-      {actions ? (
-        <div className="flex flex-wrap gap-2 sm:shrink-0 sm:flex-nowrap sm:justify-end">
-          {actions}
-        </div>
-      ) : null}
-    </div>
+    <Stack
+      direction={{ xs: 'column', sm: 'row' }}
+      alignItems={{ sm: 'center' }}
+      justifyContent="space-between"
+      spacing={2}
+      sx={{ mt: { xs: 1, sm: 2 } }}
+    >
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          variant="h5"
+          fontWeight={700}
+          sx={{ letterSpacing: '-0.3px', fontSize: { xs: '1.125rem', sm: '1.375rem', lg: '1.625rem' } }}
+        >
+          {title}
+        </Typography>
+        {description && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            {description}
+          </Typography>
+        )}
+      </Box>
+      {actions && (
+        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}>
+          <Box sx={{ width: '100%' }}>
+            {actions}
+          </Box>
+        </Stack>
+      )}
+    </Stack>
   )
 }

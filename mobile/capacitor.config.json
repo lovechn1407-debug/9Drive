@@ -1,0 +1,14 @@
+{
+  "appId": "com.ninedrive.app",
+  "appName": "9Drive",
+  "webDir": "../frontend/dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

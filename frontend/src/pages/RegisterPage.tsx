@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { HardDrive } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import Box from '@mui/material/Box'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
+import Button from '@mui/material/Button'
+import Divider from '@mui/material/Divider'
+import Alert from '@mui/material/Alert'
+import Avatar from '@mui/material/Avatar'
+import Stack from '@mui/material/Stack'
+import StorageIcon from '@mui/icons-material/Storage'
 import { GoogleLogo } from '@/components/auth/GoogleLogo'
-import { Input } from '@/components/ui/input'
 import { apiFetch } from '@/lib/api'
 import { setAuthSession, type AuthUser } from '@/lib/auth'
 
@@ -43,7 +50,6 @@ export function RegisterPage() {
         'expired-callback': () => setCaptchaToken(''),
       })
     }
-
     if (!document.getElementById(scriptId)) {
       const script = document.createElement('script')
       script.id = scriptId
@@ -92,26 +98,52 @@ export function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-5">
-      <Card className="w-full max-w-md p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white"><HardDrive className="h-6 w-6" /></div>
-          <div><h1 className="text-2xl font-extrabold">Register</h1><p className="text-sm text-slate-500">Create your storage gateway account.</p></div>
-        </div>
-        <form onSubmit={submit} className="mt-6 grid gap-4">
-          <label className="grid gap-2 text-sm font-semibold">Name<Input value={name} onChange={(e) => setName(e.target.value)} required /></label>
-          <label className="grid gap-2 text-sm font-semibold">Email<Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-          <label className="grid gap-2 text-sm font-semibold">Password<Input type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
-          {recaptchaSiteKey ? <div className="min-h-[78px] overflow-hidden rounded-xl bg-slate-50 p-2"><div ref={recaptchaRef} /></div> : null}
-          {error ? <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
-          <Button disabled={loading}>{loading ? 'Creating...' : 'Create Account'}</Button>
-        </form>
-        <div className="mt-4 grid gap-3">
-          <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400"><span className="h-px flex-1 bg-slate-200" />or<span className="h-px flex-1 bg-slate-200" /></div>
-          <Button variant="outline" disabled={googleLoading} onClick={continueWithGoogle}><GoogleLogo />{googleLoading ? 'Redirecting...' : 'Continue with Google and connect Drive'}</Button>
-        </div>
-        <p className="mt-5 text-center text-sm text-slate-500">Already registered? <Link className="font-bold text-blue-600" to="/login">Login</Link></p>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', p: 2 }}>
+      <Card variant="outlined" sx={{ width: '100%', maxWidth: 440 }}>
+        <CardContent sx={{ p: 4 }}>
+          {/* Header */}
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
+            <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48, borderRadius: 3 }}>
+              <StorageIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h5" fontWeight={800} letterSpacing="-0.3px">Register</Typography>
+              <Typography variant="body2" color="text.secondary">Create your storage gateway account.</Typography>
+            </Box>
+          </Stack>
+
+          {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+
+          <Box component="form" onSubmit={submit} sx={{ display: 'grid', gap: 2.5 }}>
+            <TextField label="Full Name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+            <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+            <TextField label="Password" type="password" inputProps={{ minLength: 8 }} value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
+            {recaptchaSiteKey && (
+              <Box sx={{ borderRadius: 3, overflow: 'hidden', bgcolor: 'background.default', p: 1 }}>
+                <div ref={recaptchaRef} />
+              </Box>
+            )}
+            <Button type="submit" variant="contained" size="large" fullWidth disabled={loading} disableElevation>
+              {loading ? 'Creating...' : 'Create Account'}
+            </Button>
+          </Box>
+
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="caption" color="text.secondary" fontWeight={600}>OR</Typography>
+          </Divider>
+
+          <Button variant="outlined" size="large" fullWidth disabled={googleLoading} onClick={continueWithGoogle} startIcon={<GoogleLogo />}>
+            {googleLoading ? 'Redirecting...' : 'Continue with Google and connect Drive'}
+          </Button>
+
+          <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 3 }}>
+            Already registered?{' '}
+            <Link to="/login" style={{ color: 'inherit', fontWeight: 700, textDecoration: 'underline' }}>
+              Login
+            </Link>
+          </Typography>
+        </CardContent>
       </Card>
-    </main>
+    </Box>
   )
 }

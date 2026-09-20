@@ -1,0 +1,32 @@
+services:
+  # 9Drive Express API Web Service
+  - type: web
+    name: ninedrive-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    autoDeploy: true
+    envVars:
+      - key: APP_PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        value: capacitor://localhost
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_TTL_SECONDS
+        value: 900
+      - key: REFRESH_TOKEN_TTL_DAYS
+        value: 30
+      - key: MAX_UPLOAD_BYTES
+        value: 5368709120
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false

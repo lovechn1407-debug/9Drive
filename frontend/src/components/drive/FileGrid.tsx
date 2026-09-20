@@ -1,133 +1,109 @@
-import { MoreVertical } from 'lucide-react'
 import type { MouseEvent } from 'react'
-import { Card } from '@/components/ui/card'
+import Grid from '@mui/material/Grid'
+import Card from '@mui/material/Card'
+import CardActionArea from '@mui/material/CardActionArea'
+import CardContent from '@mui/material/CardContent'
+import Checkbox from '@mui/material/Checkbox'
+import Typography from '@mui/material/Typography'
+import Box from '@mui/material/Box'
+import IconButton from '@mui/material/IconButton'
+import Chip from '@mui/material/Chip'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
 import { FileIcon } from '@/components/drive/FileIcon'
 import type { FileItem } from '@/data/drive-data'
-import { cn } from '@/lib/utils'
 
 export type FileSizeScale = 'xs' | 'sm' | 'md' | 'lg'
 
-const scaleConfig: Record<FileSizeScale, {
-  grid: string
-  card: string
-  checkbox: string
-  menuBtn: string
-  iconShell: string
-  icon: string
-  title: string
-  date: string
-  tagsShell: string
-  tag: string
-  mtCard: string
-}> = {
-  xs: {
-    grid: 'grid-cols-3 sm:grid-cols-4 xl:grid-cols-6 gap-2',
-    card: 'p-2.5',
-    checkbox: 'h-4 w-4',
-    menuBtn: '-mr-2.5 -mt-2.5 h-7 w-7',
-    iconShell: 'h-10 w-10 mt-1',
-    icon: 'h-5 w-5 p-1',
-    title: 'text-[11px] min-h-7 mt-2',
-    date: 'text-[9px] mt-0.5',
-    tagsShell: 'mt-1.5 gap-1',
-    tag: 'px-1.5 py-0.5 text-[9px]',
-    mtCard: 'mt-2',
-  },
-  sm: {
-    grid: 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5',
-    card: 'p-3',
-    checkbox: 'h-4.5 w-4.5',
-    menuBtn: '-mr-2 -mt-2 h-8 w-8',
-    iconShell: 'h-12 w-12 mt-2',
-    icon: 'h-7 w-7 p-1.5',
-    title: 'text-xs min-h-8 mt-3',
-    date: 'text-[10px] mt-1',
-    tagsShell: 'mt-2 gap-1.5',
-    tag: 'px-2 py-0.5 text-[10px]',
-    mtCard: 'mt-3',
-  },
-  md: {
-    grid: 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5',
-    card: 'p-4',
-    checkbox: 'h-5 w-5',
-    menuBtn: '-mr-2 -mt-2 h-10 w-10',
-    iconShell: 'h-16 w-16 sm:h-20 sm:w-20 mt-4',
-    icon: 'h-9 w-9 rounded-xl p-2 sm:h-11 sm:w-11',
-    title: 'line-clamp-2 min-h-10 text-sm font-extrabold text-slate-950 mt-5',
-    date: 'mt-2 truncate text-xs text-slate-500',
-    tagsShell: 'mt-3 flex flex-wrap justify-center gap-2 text-xs font-semibold text-slate-600',
-    tag: 'rounded-full bg-slate-100 px-2.5 py-1',
-    mtCard: 'mt-5',
-  },
-  lg: {
-    grid: 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6',
-    card: 'p-6',
-    checkbox: 'h-6 w-6',
-    menuBtn: '-mr-3 -mt-3 h-12 w-12',
-    iconShell: 'h-24 w-24 sm:h-32 sm:w-32 mt-6',
-    icon: 'h-14 w-14 rounded-2xl p-3 sm:h-18 sm:w-18',
-    title: 'line-clamp-2 min-h-12 text-base font-extrabold text-slate-950 mt-6 sm:text-lg',
-    date: 'mt-2 truncate text-sm text-slate-500',
-    tagsShell: 'mt-4 flex flex-wrap justify-center gap-2 text-sm font-semibold text-slate-600',
-    tag: 'rounded-full bg-slate-100 px-3 py-1.5',
-    mtCard: 'mt-6',
-  },
+const scaleConfig: Record<FileSizeScale, { cols: number; iconSize: number; spacing: number }> = {
+  xs: { cols: 4, iconSize: 32, spacing: 1 },
+  sm: { cols: 3, iconSize: 40, spacing: 1.5 },
+  md: { cols: 2, iconSize: 56, spacing: 2 },
+  lg: { cols: 1, iconSize: 72, spacing: 2.5 },
 }
 
 export function FileGrid({
   files,
   selectedFileIds = new Set<string>(),
+  mobileTwoColumns = false,
   sizeScale = 'md',
   onFileContextMenu,
-  onToggleFile
+  onToggleFile,
 }: {
   files: FileItem[]
   selectedFileIds?: Set<string>
+  mobileTwoColumns?: boolean
   sizeScale?: FileSizeScale
   onFileContextMenu?: (event: MouseEvent<HTMLElement>, file: FileItem) => void
   onToggleFile?: (file: FileItem) => void
 }) {
   const cfg = scaleConfig[sizeScale]
+  const colsMobile = mobileTwoColumns ? 6 : Math.max(12 / cfg.cols, 4)
+
   return (
-    <div className={cn("mt-5 grid", cfg.grid)}>
+    <>
       {files.map((file) => {
         const selected = selectedFileIds.has(file.id ?? '')
         return (
-          <Card
-            key={file.id ?? file.name}
-            draggable
-            onDragStart={(event) => { event.dataTransfer.setData('text/plain', file.id ?? ''); event.dataTransfer.effectAllowed = 'move' }}
-            onClick={() => onToggleFile?.(file)}
-            onContextMenu={(event) => onFileContextMenu?.(event, file)}
-            className={cn(
-              selected
-                ? 'relative cursor-grab active:cursor-grabbing overflow-hidden file-selected shadow-sm transition hover:-translate-y-0.5 hover:shadow-md'
-                : 'relative cursor-grab active:cursor-grabbing overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md',
-              cfg.card
-            )}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <input type="checkbox" className={cn("shrink-0 accent-blue-600", cfg.checkbox)} checked={selected} onChange={() => onToggleFile?.(file)} onClick={(event) => event.stopPropagation()} />
-              <button className={cn("flex shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-white/80", cfg.menuBtn)} onClick={(event) => { event.stopPropagation(); onFileContextMenu?.(event, file) }} aria-label={`Open ${file.name} menu`}><MoreVertical className="h-4 w-4" /></button>
-            </div>
+          <Grid key={file.id ?? file.name} size={{ xs: colsMobile, sm: 12 / Math.max(cfg.cols - 1, 1) }}>
+            <Card
+              variant="outlined"
+              draggable
+              onDragStart={(e: any) => { e.dataTransfer.setData('text/plain', file.id ?? ''); e.dataTransfer.effectAllowed = 'move' }}
+              onContextMenu={(e: MouseEvent<HTMLDivElement>) => onFileContextMenu?.(e, file)}
+              sx={{
+                position: 'relative',
+                cursor: 'grab',
+                transition: 'all 0.2s',
+                outline: selected ? '2px solid' : 'none',
+                outlineColor: selected ? 'primary.main' : 'transparent',
+                bgcolor: selected ? 'action.selected' : 'background.paper',
+                borderRadius: '12px',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                '&:hover': { boxShadow: 3, transform: 'translateY(-2px)' },
+              }}
+            >
+              {/* Context menu button */}
+              <IconButton
+                size="small"
+                onClick={(e) => { e.stopPropagation(); onFileContextMenu?.(e, file) }}
+                aria-label={`Open ${file.name} menu`}
+                sx={{ position: 'absolute', top: 6, right: 6, zIndex: 1 }}
+              >
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
 
-            <div className="flex justify-center mt-2">
-              <div className={cn("flex items-center justify-center rounded-2xl bg-slate-100 text-slate-700", cfg.iconShell)}>
-                <FileIcon kind={file.kind} className={cfg.icon} />
-              </div>
-            </div>
+              <CardActionArea sx={{ flexGrow: 1 }} onClick={() => onToggleFile?.(file)}>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', py: 3, px: 2, height: '100%' }}>
+                  {/* File icon */}
+                  <Box sx={{
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 1.5,
+                    transition: 'transform 0.2s',
+                    '&:hover': { transform: 'scale(1.05)' },
+                  }}>
+                    <FileIcon kind={file.kind} className="!w-full !h-full !p-0" />
+                  </Box>
 
-            <div className={cn("min-w-0 text-center", cfg.mtCard)}>
-              <h3 className={cn("font-extrabold text-slate-950 line-clamp-2", cfg.title)} title={file.name}>{file.name}</h3>
-              <p className={cfg.date}>{file.date}</p>
-              <div className={cn("flex flex-wrap justify-center font-semibold text-slate-600", cfg.tagsShell)}>
-                <span className={cn("rounded-full bg-slate-100", cfg.tag)}>{file.size}</span>
-                <span className={cn("max-w-full truncate rounded-full bg-slate-100", cfg.tag)}>{file.access}</span>
-              </div>
-            </div>
-          </Card>
+                  <Typography
+                    variant={sizeScale === 'lg' ? 'subtitle1' : 'body2'}
+                    fontWeight={600}
+                    sx={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.3, mb: 1 }}
+                    title={file.name}
+                  >
+                    {file.name}
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
         )
       })}
-    </div>
+    </>
   )
 }
