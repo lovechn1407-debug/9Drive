@@ -7,10 +7,9 @@ import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate'
-import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import Dialog from '@mui/material/Dialog'
-
+import DialogActions from '@mui/material/DialogActions'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemIcon from '@mui/material/ListItemIcon'
@@ -20,6 +19,7 @@ import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Avatar from '@mui/material/Avatar'
 import Divider from '@mui/material/Divider'
+import IconButton from '@mui/material/IconButton'
 
 import FolderSpecialIcon from '@mui/icons-material/FolderSpecial'
 import SyncIcon from '@mui/icons-material/Sync'
@@ -48,9 +48,10 @@ export function PhotosPage() {
   const { setHeaderActions } = useDriveLayoutActions()
   const cols = 4
 
-  const [viewerFile, setViewerFile] = useState<any | null>(null)
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const [autoUploadOpen, setAutoUploadOpen] = useState(false)
   const [syncSettingsOpen, setSyncSettingsOpen] = useState(false)
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false)
 
   // Dummy state for folders
   const [allFoldersSync, setAllFoldersSync] = useState(false)
@@ -122,12 +123,12 @@ export function PhotosPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.default' }}>
         <Typography variant="h5" fontWeight={800}>Gallery</Typography>
         <Stack direction="row" spacing={1}>
-          <IconButton onClick={() => setAutoUploadOpen(true)} color="primary">
-            <FolderSpecialIcon />
-          </IconButton>
-          <IconButton onClick={() => setSyncSettingsOpen(true)} color="primary">
-            <SyncIcon />
-          </IconButton>
+          <Button variant="outlined" size="small" onClick={() => setAutoUploadOpen(true)} startIcon={<FolderSpecialIcon />}>
+            Auto Upload Folders
+          </Button>
+          <Button variant="outlined" size="small" onClick={() => setSyncSettingsOpen(true)} startIcon={<SyncIcon />}>
+            Sync Settings
+          </Button>
         </Stack>
       </Box>
 
@@ -145,8 +146,8 @@ export function PhotosPage() {
       ) : (
         <Box>
           <ImageList cols={cols} gap={0} sx={{ m: 0 }}>
-            {files.map((file) => (
-              <PhotoItem key={file.id} file={file} onClick={() => setViewerFile(file)} />
+            {files.map((file, idx) => (
+              <PhotoItem key={file.id} file={file} onClick={() => setViewerIndex(idx)} />
             ))}
           </ImageList>
         </Box>
@@ -204,26 +205,45 @@ export function PhotosPage() {
             ))}
           </List>
         </Box>
+        <DialogActions>
+          <Button onClick={() => setAutoUploadOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={() => setAutoUploadOpen(false)}>Save</Button>
+        </DialogActions>
       </Dialog>
 
       {/* Sync Settings Dialog */}
       <Dialog open={syncSettingsOpen} onClose={() => setSyncSettingsOpen(false)} fullWidth maxWidth="xs">
-        <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Box sx={{ p: 3 }}>
           <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Sync Settings</Typography>
-          <Stack spacing={2}>
-            <Button variant="outlined" size="large" fullWidth startIcon={<SyncIcon />}>
-              Auto Sync
-            </Button>
-            <Button variant="contained" size="large" fullWidth startIcon={<CloudUploadIcon />}>
-              Press to sync phone image files
-            </Button>
+          <Stack spacing={3}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography fontWeight={600}>Auto Sync</Typography>
+              <Switch checked={autoSyncEnabled} onChange={(e) => setAutoSyncEnabled(e.target.checked)} />
+            </Stack>
+            {!autoSyncEnabled && (
+              <Button variant="contained" size="large" fullWidth startIcon={<CloudUploadIcon />}>
+                Press to sync phone image files
+              </Button>
+            )}
           </Stack>
         </Box>
+        <DialogActions>
+          <Button onClick={() => setSyncSettingsOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={() => setSyncSettingsOpen(false)}>Confirm</Button>
+        </DialogActions>
       </Dialog>
 
       {/* Photo Viewer */}
-      {viewerFile && (
-        <PhotoViewer file={viewerFile} onClose={() => setViewerFile(null)} />
+      {viewerIndex !== null && (
+        <PhotoViewer 
+          files={files} 
+          initialIndex={viewerIndex} 
+          onClose={() => setViewerIndex(null)} 
+          onDeleted={() => {
+            loadPhotos()
+            setViewerIndex(null)
+          }}
+        />
       )}
     </Box>
   )
@@ -233,7 +253,7 @@ function PhotoItem({ file, onClick }: { file: any, onClick: () => void }) {
   const [url, setUrl] = useState(file.thumbnailLink || '')
 
   useEffect(() => {
-    if (url) return // Skip fetching preview token if we already have a thumbnailLink
+    if (url) return 
     apiFetch<{ path: string }>(`/files/${file.id}/preview-token`, { method: 'POST' })
       .then(res => {
         setUrl(`${import.meta.env.VITE_API_URL}${res.path}`)
@@ -259,26 +279,85 @@ function PhotoItem({ file, onClick }: { file: any, onClick: () => void }) {
   )
 }
 
-function PhotoViewer({ file, onClose }: { file: any, onClose: () => void }) {
-  const [fullUrl, setFullUrl] = useState<string | null>(null)
+function PhotoViewer({ files, initialIndex, onClose, onDeleted }: { files: any[], initialIndex: number, onClose: () => void, onDeleted: () => void }) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex)
+  const file = files[currentIndex]
+  
+  const [urls, setUrls] = useState<Record<string, string>>({})
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  
+  const [touchStart, setTouchStart] = useState<number | null>(null)
 
   useEffect(() => {
-    apiFetch<{ path: string }>(`/files/${file.id}/preview-token`, { method: 'POST' })
-      .then(res => {
-        setFullUrl(`${import.meta.env.VITE_API_URL}${res.path}`)
-      })
-      .catch(console.error)
-  }, [file.id])
+    // Preload current, previous and next
+    const indicesToLoad = [currentIndex - 1, currentIndex, currentIndex + 1].filter(i => i >= 0 && i < files.length)
+    
+    indicesToLoad.forEach(i => {
+      const f = files[i]
+      if (!urls[f.id]) {
+        apiFetch<{ path: string }>(`/files/${f.id}/preview-token`, { method: 'POST' })
+          .then(res => {
+            setUrls(prev => ({ ...prev, [f.id]: `${import.meta.env.VITE_API_URL}${res.path}` }))
+          })
+          .catch(console.error)
+      }
+    })
+  }, [currentIndex, files, urls])
 
-  const dateStr = new Date(file.createdAt).toLocaleString(undefined, { 
+  const handlePrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1) }
+  const handleNext = () => { if (currentIndex < files.length - 1) setCurrentIndex(currentIndex + 1) }
+
+  const onTouchStartEvent = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX)
+  const onTouchEndEvent = (e: React.TouchEvent) => {
+    if (touchStart === null) return
+    const touchEnd = e.changedTouches[0].clientX
+    const distance = touchStart - touchEnd
+    if (distance > 50) handleNext() // Swipe left (next)
+    if (distance < -50) handlePrev() // Swipe right (prev)
+    setTouchStart(null)
+  }
+
+  const handleTrash = async () => {
+    if (!window.confirm('Are you sure you want to delete this photo?')) return
+    try {
+      await apiFetch(`/files/${file.id}`, { method: 'DELETE' })
+      onDeleted()
+    } catch (e) {
+      console.error(e)
+      alert('Failed to delete photo')
+    }
+  }
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: file.name, url: window.location.href })
+      } catch (e) {
+        console.error(e)
+      }
+    } else {
+      alert('Share is not supported on this browser.')
+    }
+  }
+
+  const handleMenuClick = (action: string) => {
+    setAnchorEl(null)
+    if (action === 'Copy Link') {
+      navigator.clipboard.writeText(window.location.href)
+      alert('Link copied to clipboard')
+    } else {
+      alert(`${action} coming soon`)
+    }
+  }
+
+  const dateStr = file.createdAt ? new Date(file.createdAt).toLocaleString(undefined, { 
     year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-  })
+  }) : 'Unknown date'
 
   return (
-    <Dialog fullScreen open PaperProps={{ sx: { bgcolor: 'black', color: 'white' } }}>
+    <Dialog fullScreen open PaperProps={{ sx: { bgcolor: 'black', color: 'white', overflow: 'hidden' } }}>
       {/* Top Bar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', p: 1, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, bgcolor: 'rgba(0,0,0,0.5)' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', p: 1, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, bgcolor: 'rgba(0,0,0,0.5)' }}>
         <IconButton onClick={onClose} sx={{ color: 'white' }}>
           <ArrowBackIcon />
         </IconButton>
@@ -286,41 +365,59 @@ function PhotoViewer({ file, onClose }: { file: any, onClose: () => void }) {
           <Typography variant="body1" noWrap fontWeight={700}>{file.name}</Typography>
           <Typography variant="caption" noWrap sx={{ opacity: 0.7 }}>{dateStr}</Typography>
         </Box>
-        <IconButton sx={{ color: 'white' }}>
+        <IconButton sx={{ color: 'white' }} onClick={() => alert('Starred')}>
           <StarBorderIcon />
         </IconButton>
       </Box>
 
-      {/* Image Area */}
-      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 7, mb: 7 }}>
-        {fullUrl ? (
-          <img
-            src={fullUrl}
-            alt={file.name}
-            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-          />
-        ) : (
-          <CircularProgress sx={{ color: 'white' }} />
-        )}
+      {/* Swipeable Image Area */}
+      <Box 
+        sx={{ flex: 1, position: 'relative', mt: 7, mb: 7, overflow: 'hidden' }}
+        onTouchStart={onTouchStartEvent}
+        onTouchEnd={onTouchEndEvent}
+      >
+        <Box sx={{
+          display: 'flex',
+          height: '100%',
+          width: `${files.length * 100}%`,
+          transform: `translateX(-${(currentIndex / files.length) * 100}%)`,
+          transition: 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)'
+        }}>
+          {files.map((f, i) => (
+            <Box key={f.id} sx={{ width: `${100 / files.length}%`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {Math.abs(i - currentIndex) <= 1 ? (
+                urls[f.id] ? (
+                  <img
+                    src={urls[f.id]}
+                    alt={f.name}
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                  />
+                ) : (
+                  <CircularProgress sx={{ color: 'white' }} />
+                )
+              ) : null}
+            </Box>
+          ))}
+        </Box>
       </Box>
 
       {/* Bottom Bar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', p: 1, position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, bgcolor: 'rgba(0,0,0,0.5)' }}>
-        <Stack alignItems="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', p: 1, position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20, bgcolor: 'rgba(0,0,0,0.5)' }}>
+        <Stack alignItems="center" justifyContent="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }} onClick={handleShare}>
           <ShareIcon fontSize="small" />
-          <Typography variant="caption" sx={{ mt: 0.5 }}>Share</Typography>
+          <Typography variant="caption" sx={{ mt: 0.5, lineHeight: 1 }}>Share</Typography>
         </Stack>
-        <Stack alignItems="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }}>
+        <Stack alignItems="center" justifyContent="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }} onClick={() => alert('Edit feature coming soon')}>
           <EditIcon fontSize="small" />
-          <Typography variant="caption" sx={{ mt: 0.5 }}>Edit</Typography>
+          <Typography variant="caption" sx={{ mt: 0.5, lineHeight: 1 }}>Edit</Typography>
         </Stack>
-        <Stack alignItems="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }}>
+        <Stack alignItems="center" justifyContent="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }} onClick={handleTrash}>
           <DeleteIcon fontSize="small" />
-          <Typography variant="caption" sx={{ mt: 0.5 }}>Trash</Typography>
+          <Typography variant="caption" sx={{ mt: 0.5, lineHeight: 1 }}>Trash</Typography>
         </Stack>
-        <Stack alignItems="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }} onClick={(e) => setAnchorEl(e.currentTarget)}>
+        <Stack alignItems="center" justifyContent="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }} onClick={(e) => setAnchorEl(e.currentTarget)}>
           <MoreVertIcon fontSize="small" />
-          <Typography variant="caption" sx={{ mt: 0.5 }}>More</Typography>
+          <Typography variant="caption" sx={{ mt: 0.5, lineHeight: 1 }}>More</Typography>
         </Stack>
       </Box>
 
@@ -332,23 +429,23 @@ function PhotoViewer({ file, onClose }: { file: any, onClose: () => void }) {
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <MenuItem onClick={() => setAnchorEl(null)}>
+        <MenuItem onClick={() => handleMenuClick('About')}>
           <ListItemIcon><InfoIcon fontSize="small" /></ListItemIcon>
           <ListItemText>About</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => setAnchorEl(null)}>
+        <MenuItem onClick={() => handleMenuClick('Google Lens')}>
           <ListItemIcon><SearchIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Google Lens</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => setAnchorEl(null)}>
+        <MenuItem onClick={() => handleMenuClick('Copy Link')}>
           <ListItemIcon><LinkIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Copy Link</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => setAnchorEl(null)}>
+        <MenuItem onClick={() => handleMenuClick('Print')}>
           <ListItemIcon><PrintIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Print</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => setAnchorEl(null)}>
+        <MenuItem onClick={() => handleMenuClick('Use as')}>
           <ListItemIcon><OpenInNewIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Use as</ListItemText>
         </MenuItem>
