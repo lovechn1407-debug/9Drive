@@ -23,7 +23,7 @@ export function PhotosPage() {
   const matchDownSm = useMediaQuery(theme.breakpoints.down('sm'))
   const matchDownMd = useMediaQuery(theme.breakpoints.down('md'))
 
-  const cols = matchDownSm ? 2 : matchDownMd ? 3 : 5
+  const cols = matchDownSm ? 2 : matchDownMd ? 3 : 4
 
   useEffect(() => {
     setHeaderActions(
@@ -97,7 +97,7 @@ export function PhotosPage() {
       ) : (
         <Box>
           <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>Gallery</Typography>
-          <ImageList variant="masonry" cols={cols} gap={16}>
+          <ImageList cols={cols} gap={0} sx={{ m: 0 }}>
             {files.map((file) => (
               <PhotoItem key={file.id} file={file} />
             ))}
@@ -138,25 +138,24 @@ function PhotoItem({ file }: { file: any }) {
   const [url, setUrl] = useState('')
 
   useEffect(() => {
-    // Get view token
-    apiFetch<{ token: string }>(`/files/${file.id}/preview-token`, { method: 'POST' })
+    apiFetch<{ path: string }>(`/files/${file.id}/preview-token`, { method: 'POST' })
       .then(res => {
-        setUrl(`${import.meta.env.VITE_API_URL}/files/preview/${res.token}`)
+        setUrl(`${import.meta.env.VITE_API_URL}${res.path}`)
       })
       .catch(console.error)
   }, [file.id])
 
   return (
-    <ImageListItem sx={{ overflow: 'hidden', borderRadius: 2, cursor: 'pointer', transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.02)', boxShadow: 4 } }}>
+    <ImageListItem sx={{ overflow: 'hidden', cursor: 'pointer', aspectRatio: '1/1', position: 'relative', '&:hover': { opacity: 0.9 } }}>
       {url ? (
         <img
           src={url}
           alt={file.name}
           loading="lazy"
-          style={{ borderRadius: 8, display: 'block', width: '100%', height: 'auto' }}
+          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
         />
       ) : (
-        <Box sx={{ height: 150, bgcolor: 'action.hover', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ width: '100%', height: '100%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <CircularProgress size={24} />
         </Box>
       )}
