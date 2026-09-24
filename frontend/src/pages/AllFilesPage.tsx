@@ -716,7 +716,7 @@ export function AllFilesPage() {
         onClick={() => setUploadOpen(true)}
         sx={{
           position: 'fixed',
-          bottom: uploadProgress.open ? { xs: 164, sm: 112 } : { xs: 96, sm: 48 },
+          bottom: uploadProgress.open && uploadProgress.collapsed ? { xs: 164, sm: 112 } : { xs: 96, sm: 48 },
           right: { xs: 24, sm: 48 },
           boxShadow: 6,
           zIndex: 1000,
@@ -725,7 +725,10 @@ export function AllFilesPage() {
           fontSize: '1rem',
           fontWeight: 700,
           borderRadius: 1, // Rectangular, as requested
-          transition: 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          opacity: uploadProgress.open && !uploadProgress.collapsed ? 0 : 1,
+          transform: uploadProgress.open && !uploadProgress.collapsed ? 'scale(0.8)' : 'scale(1)',
+          pointerEvents: uploadProgress.open && !uploadProgress.collapsed ? 'none' : 'auto',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         Upload

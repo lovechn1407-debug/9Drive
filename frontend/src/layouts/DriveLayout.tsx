@@ -242,7 +242,6 @@ export function DriveLayout() {
   const [breakdown, setBreakdown] = useState<StorageBreakdown>({ photo: '0', video: '0', document: '0' })
   const [headerActions, setHeaderActions] = useState<ReactNode>(null)
   const { uploadProgress, setUploadProgress, retryFailedUpload } = useUpload()
-  const [uploadCollapsed, setUploadCollapsed] = useState(false)
   const [infoAnchor, setInfoAnchor] = useState<null | HTMLElement>(null)
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([])
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -594,12 +593,12 @@ export function DriveLayout() {
             <Stack direction="row" alignItems="center" spacing={1}>
               {uploadProgress.status === 'done' ? <CheckCircleIcon color="success" fontSize="small" /> :
                uploadProgress.status === 'error' || uploadProgress.status === 'partial' ? <ErrorIcon color="error" fontSize="small" /> :
-               <CircularProgress size={16} thickness={5} />}
+               <CircularProgress size={20} thickness={4} />}
               <Typography variant="body2" fontWeight={700}>{uploadLabel}</Typography>
             </Stack>
             <Stack direction="row">
-              <IconButton size="small" onClick={() => setUploadCollapsed(!uploadCollapsed)}>
-                <ExpandMoreIcon fontSize="small" sx={{ transform: uploadCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              <IconButton size="small" onClick={() => setUploadProgress((c) => ({ ...c, collapsed: !c.collapsed }))}>
+                <ExpandMoreIcon fontSize="small" sx={{ transform: uploadProgress.collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </IconButton>
               <IconButton size="small" onClick={() => setUploadProgress((c) => ({ ...c, open: false }))}>
                 <CloseIcon fontSize="small" />
@@ -607,7 +606,7 @@ export function DriveLayout() {
             </Stack>
           </Stack>
 
-          <Collapse in={!uploadCollapsed}>
+          <Collapse in={!uploadProgress.collapsed}>
             <Box sx={{ p: 0, bgcolor: 'transparent' }}>
               {/* Overall progress - only if multiple files */}
               {uploadProgress.files.length > 1 && (

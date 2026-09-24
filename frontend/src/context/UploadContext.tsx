@@ -4,7 +4,7 @@ import { getAccessToken } from '@/lib/auth'
 
 export type UploadProgressStatus = 'uploading' | 'done' | 'error' | 'partial'
 export type UploadProgressFile = { name: string; size: number; percent: number; status: UploadProgressStatus }
-export type UploadProgressState = { open: boolean; fileName: string; percent: number; status: UploadProgressStatus; files: UploadProgressFile[] }
+export type UploadProgressState = { open: boolean; collapsed: boolean; fileName: string; percent: number; status: UploadProgressStatus; files: UploadProgressFile[] }
 
 type ResumableSession = { sessionId: string; file: File; folderId?: string | null; targetAccountId?: string | null; uploadUrl?: string }
 
@@ -20,6 +20,7 @@ const UploadContext = createContext<UploadContextType | undefined>(undefined)
 export function UploadProvider({ children }: { children: ReactNode }) {
   const [uploadProgress, setUploadProgress] = useState<UploadProgressState>({
     open: false,
+    collapsed: false,
     fileName: '',
     percent: 0,
     status: 'uploading',
