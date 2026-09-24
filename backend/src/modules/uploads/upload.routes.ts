@@ -606,6 +606,7 @@ uploadRouter.post('/resumable/confirm/:id', requireAuth, async (req: AuthRequest
       where: { providerFileId: body.fileId, userId: req.user!.id }
     })
 
+    if (!existingFile) {
       const metadata = await drive.files.get({ fileId: body.fileId, fields: 'thumbnailLink' })
       const thumbnailLink = metadata.data.thumbnailLink ?? null
       
