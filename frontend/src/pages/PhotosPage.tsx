@@ -205,8 +205,8 @@ export function PhotosPage() {
             ))}
           </List>
         </Box>
-        <DialogActions>
-          <Button onClick={() => setAutoUploadOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
+          <Button onClick={() => setAutoUploadOpen(false)} variant="outlined">Cancel</Button>
           <Button variant="contained" onClick={() => setAutoUploadOpen(false)}>Save</Button>
         </DialogActions>
       </Dialog>
@@ -216,10 +216,10 @@ export function PhotosPage() {
         <Box sx={{ p: 3 }}>
           <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Sync Settings</Typography>
           <Stack spacing={3}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography fontWeight={600}>Auto Sync</Typography>
+            <ListItem disablePadding>
+              <ListItemText primary={<Typography fontWeight={600}>Auto Sync</Typography>} />
               <Switch checked={autoSyncEnabled} onChange={(e) => setAutoSyncEnabled(e.target.checked)} />
-            </Stack>
+            </ListItem>
             {!autoSyncEnabled && (
               <Button variant="contained" size="large" fullWidth startIcon={<CloudUploadIcon />}>
                 Press to sync phone image files
@@ -227,8 +227,8 @@ export function PhotosPage() {
             )}
           </Stack>
         </Box>
-        <DialogActions>
-          <Button onClick={() => setSyncSettingsOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
+          <Button onClick={() => setSyncSettingsOpen(false)} variant="outlined">Cancel</Button>
           <Button variant="contained" onClick={() => setSyncSettingsOpen(false)}>Confirm</Button>
         </DialogActions>
       </Dialog>
@@ -285,6 +285,7 @@ function PhotoViewer({ files, initialIndex, onClose, onDeleted }: { files: any[]
   
   const [urls, setUrls] = useState<Record<string, string>>({})
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [aboutOpen, setAboutOpen] = useState(false)
   
   const [touchStart, setTouchStart] = useState<number | null>(null)
 
@@ -342,12 +343,27 @@ function PhotoViewer({ files, initialIndex, onClose, onDeleted }: { files: any[]
 
   const handleMenuClick = (action: string) => {
     setAnchorEl(null)
+    const url = urls[file.id]
     if (action === 'Copy Link') {
-      navigator.clipboard.writeText(window.location.href)
+      navigator.clipboard.writeText(url || window.location.href)
       alert('Link copied to clipboard')
-    } else {
-      alert(`${action} coming soon`)
+    } else if (action === 'About') {
+      setAboutOpen(true)
+    } else if (action === 'Google Lens') {
+      if (url) window.open('https://lens.google.com/uploadbyurl?url=' + encodeURIComponent(url), '_blank')
+    } else if (action === 'Print') {
+      if (url) {
+        const w = window.open('')
+        if (w) w.document.write(`<img src="${url}" style="max-width:100%;" onload="window.print();window.close()" />`)
+      }
+    } else if (action === 'Use as') {
+      window.open(`${import.meta.env.VITE_API_URL}/files/${file.id}/download`, '_blank')
     }
+  }
+
+  const handleEdit = () => {
+    const url = urls[file.id]
+    if (url) window.open('https://pixlr.com/editor/?image=' + encodeURIComponent(url), '_blank')
   }
 
   const dateStr = file.createdAt ? new Date(file.createdAt).toLocaleString(undefined, { 
@@ -403,22 +419,22 @@ function PhotoViewer({ files, initialIndex, onClose, onDeleted }: { files: any[]
 
       {/* Bottom Bar */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', p: 1, position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20, bgcolor: 'rgba(0,0,0,0.5)' }}>
-        <Stack alignItems="center" justifyContent="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }} onClick={handleShare}>
+        <Box onClick={handleShare} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 }, p: 1, minWidth: 64 }}>
           <ShareIcon fontSize="small" />
           <Typography variant="caption" sx={{ mt: 0.5, lineHeight: 1 }}>Share</Typography>
-        </Stack>
-        <Stack alignItems="center" justifyContent="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }} onClick={() => alert('Edit feature coming soon')}>
+        </Box>
+        <Box onClick={handleEdit} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 }, p: 1, minWidth: 64 }}>
           <EditIcon fontSize="small" />
           <Typography variant="caption" sx={{ mt: 0.5, lineHeight: 1 }}>Edit</Typography>
-        </Stack>
-        <Stack alignItems="center" justifyContent="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }} onClick={handleTrash}>
+        </Box>
+        <Box onClick={handleTrash} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 }, p: 1, minWidth: 64 }}>
           <DeleteIcon fontSize="small" />
           <Typography variant="caption" sx={{ mt: 0.5, lineHeight: 1 }}>Trash</Typography>
-        </Stack>
-        <Stack alignItems="center" justifyContent="center" sx={{ cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 } }} onClick={(e) => setAnchorEl(e.currentTarget)}>
+        </Box>
+        <Box onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', opacity: 0.8, '&:hover': { opacity: 1 }, p: 1, minWidth: 64 }}>
           <MoreVertIcon fontSize="small" />
           <Typography variant="caption" sx={{ mt: 0.5, lineHeight: 1 }}>More</Typography>
-        </Stack>
+        </Box>
       </Box>
 
       {/* More Menu */}
@@ -450,6 +466,24 @@ function PhotoViewer({ files, initialIndex, onClose, onDeleted }: { files: any[]
           <ListItemText>Use as</ListItemText>
         </MenuItem>
       </Menu>
+
+      {/* About Dialog */}
+      <Dialog open={aboutOpen} onClose={() => setAboutOpen(false)} PaperProps={{ sx: { bgcolor: 'background.paper', color: 'text.primary', minWidth: 300 } }}>
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Details</Typography>
+          <Typography variant="body2" color="text.secondary">Name</Typography>
+          <Typography variant="body1" sx={{ mb: 1, wordBreak: 'break-all' }}>{file.name}</Typography>
+          <Typography variant="body2" color="text.secondary">Date</Typography>
+          <Typography variant="body1" sx={{ mb: 1 }}>{dateStr}</Typography>
+          <Typography variant="body2" color="text.secondary">Size</Typography>
+          <Typography variant="body1" sx={{ mb: 1 }}>{file.sizeBytes ? (file.sizeBytes / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown'}</Typography>
+          <Typography variant="body2" color="text.secondary">Type</Typography>
+          <Typography variant="body1">{file.mimeType}</Typography>
+        </Box>
+        <DialogActions>
+          <Button onClick={() => setAboutOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   )
 }
