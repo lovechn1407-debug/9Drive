@@ -39,6 +39,8 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { apiFetch } from '@/lib/api'
 import { useUpload } from '@/context/UploadContext'
 import { useDriveLayoutActions } from '@/layouts/DriveLayout'
+import { Filesystem } from '@capacitor/filesystem'
+import { Capacitor } from '@capacitor/core'
 
 export function PhotosPage() {
   const [files, setFiles] = useState<any[]>([])
@@ -74,6 +76,16 @@ export function PhotosPage() {
     )
     return () => setHeaderActions(null)
   }, [setHeaderActions])
+
+  useEffect(() => {
+    if (autoUploadOpen && Capacitor.isNativePlatform()) {
+      Filesystem.requestPermissions().then(res => {
+        console.log('Storage permissions status:', res)
+      }).catch(err => {
+        console.error('Permission request failed:', err)
+      })
+    }
+  }, [autoUploadOpen])
 
   async function loadPhotos() {
     try {
