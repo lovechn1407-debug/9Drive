@@ -573,9 +573,9 @@ export function DriveLayout() {
           elevation={12}
           sx={{
             position: 'fixed',
-            bottom: { xs: 164, sm: 112 },
-            right: { xs: 24, sm: 48 },
-            left: { xs: 24, sm: 'auto' },
+            bottom: { xs: 80, sm: 32 },
+            right: { xs: 16, sm: 32 },
+            left: { xs: 16, sm: 'auto' },
             width: { sm: 400 },
             maxHeight: '70dvh',
             display: 'flex',

@@ -185,7 +185,7 @@ export function AllFilesPage() {
   const [syncingDrive, setSyncingDrive] = useState(false)
   const [fileViewMode, setFileViewMode] = useState<FileViewMode>(getStoredFileViewMode)
   
-  const { uploadFiles } = useUpload()
+  const { uploadFiles, uploadProgress } = useUpload()
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('viewer')
@@ -716,7 +716,7 @@ export function AllFilesPage() {
         onClick={() => setUploadOpen(true)}
         sx={{
           position: 'fixed',
-          bottom: { xs: 96, sm: 48 },
+          bottom: uploadProgress.open ? { xs: 164, sm: 112 } : { xs: 96, sm: 48 },
           right: { xs: 24, sm: 48 },
           boxShadow: 6,
           zIndex: 1000,
@@ -724,7 +724,8 @@ export function AllFilesPage() {
           py: 2,
           fontSize: '1rem',
           fontWeight: 700,
-          borderRadius: 9999, // Nice pill shape instead of strict rectangular
+          borderRadius: 1, // Rectangular, as requested
+          transition: 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         Upload
