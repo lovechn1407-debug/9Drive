@@ -44,7 +44,8 @@ fileRouter.get('/', async (req: AuthRequest, res, next) => {
       minSize: z.coerce.number().optional(),
       maxSize: z.coerce.number().optional(),
       startDate: z.string().datetime().optional(),
-      endDate: z.string().datetime().optional()
+      endDate: z.string().datetime().optional(),
+      isGallery: z.enum(['0', '1']).optional()
     }).parse(req.query)
 
     const typeFilters: Record<string, string[]> = {
@@ -58,6 +59,7 @@ fileRouter.get('/', async (req: AuthRequest, res, next) => {
     const where: any = {
       userId: req.user!.id,
       status: 'active',
+      isGalleryPhoto: query.isGallery === '1',
       ...(query.folderId ? { folderId: query.folderId } : {}),
       ...(query.q ? { name: { contains: query.q } } : {}),
       ...(query.accountId ? { connectedAccountId: query.accountId } : {}),

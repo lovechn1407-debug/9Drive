@@ -213,6 +213,7 @@ model File {
   name               String           @db.VarChar(255)
   mimeType           String           @map("mime_type") @db.VarChar(191)
   sizeBytes          BigInt           @map("size_bytes")
+  isGalleryPhoto     Boolean          @default(false) @map("is_gallery_photo")
   checksum           String?          @db.VarChar(191)
   status             String           @default("active") @db.VarChar(32)
   createdAt          DateTime         @default(now()) @map("created_at")
@@ -304,6 +305,7 @@ model UploadSession {
   fileName                 String            @map("file_name") @db.VarChar(255)
   mimeType                 String            @map("mime_type") @db.VarChar(191)
   sizeBytes                BigInt            @map("size_bytes")
+  isGalleryPhoto           Boolean           @default(false) @map("is_gallery_photo")
   status                   String            @db.VarChar(32)
   googleSessionUri         String?           @map("google_session_uri") @db.Text
   errorMessage             String?           @map("error_message") @db.Text

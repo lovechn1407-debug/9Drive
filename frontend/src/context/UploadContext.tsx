@@ -11,7 +11,7 @@ type ResumableSession = { sessionId: string; file: File; folderId?: string | nul
 type UploadContextType = {
   uploadProgress: UploadProgressState
   setUploadProgress: React.Dispatch<React.SetStateAction<UploadProgressState>>
-  uploadFiles: (files: File[], folderId: string | null, targetAccountId?: string | null) => Promise<void>
+  uploadFiles: (files: File[], folderId: string | null, targetAccountId?: string | null, isGalleryPhoto?: boolean) => Promise<void>
   retryFailedUpload: (fileName: string) => Promise<void>
 }
 
@@ -28,13 +28,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   })
   const [resumableSessions, setResumableSessions] = useState<Record<string, ResumableSession>>({})
 
-  async function uploadSingleFileResumable(file: File, folderId: string | null, onProgress: (percent: number) => void, sessionIdToRetry?: string, targetAccountId?: string | null) {
+  async function uploadSingleFileResumable(file: File, folderId: string | null, onProgress: (percent: number) => void, sessionIdToRetry?: string, targetAccountId?: string | null, isGalleryPhoto?: boolean) {
     const CHUNK_SIZE = 5 * 1024 * 1024 // 5MB chunks (must be multiple of 256KB for Google Drive)
     let sessionId = sessionIdToRetry || ''
     let startOffset = 0
     let uploadUrl = resumableSessions[file.name]?.uploadUrl
 
-    // Pre-save session parameters so that retry is functional even if the init API call fails
     setResumableSessions(prev => ({
       ...prev,
       [file.name]: { sessionId, file, folderId, targetAccountId, uploadUrl }
@@ -49,7 +48,8 @@ export function UploadProvider({ children }: { children: ReactNode }) {
           mimeType: file.type || 'application/octet-stream',
           sizeBytes: String(file.size),
           folderId: folderId || undefined,
-          targetAccountId: targetAccountId || undefined
+          targetAccountId: targetAccountId || undefined,
+          isGalleryPhoto
         })
       })
       sessionId = initData.sessionId
@@ -138,7 +138,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function uploadFiles(filesToUpload: File[], targetFolderId: string | null, targetAccountId?: string | null) {
+  async function uploadFiles(filesToUpload: File[], targetFolderId: string | null, targetAccountId?: string | null, isGalleryPhoto?: boolean) {
     if (filesToUpload.length === 0) return
 
     // Setup initial status
@@ -167,7 +167,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
               files: nextFiles
             }
           })
-        }, undefined, targetAccountId)
+        }, undefined, targetAccountId, isGalleryPhoto)
       } catch (err) {
         console.error('File upload failed:', file.name, err)
         setUploadProgress((current) => {

@@ -111,7 +111,7 @@ export async function handleUpload(req: AuthRequest, res: Response, next: NextFu
     if (!contentType?.includes('multipart/form-data')) return res.status(400).json({ code: 'UPLOAD_INVALID_CONTENT_TYPE', message: 'multipart/form-data required.' })
 
     const busboy = Busboy({ headers: req.headers, limits: { files: 25, fileSize: env.MAX_UPLOAD_BYTES } })
-    const fields: { sizeBytes?: bigint; fileName?: string; mimeType?: string; folderId?: string } = {}
+    const fields: { sizeBytes?: bigint; fileName?: string; mimeType?: string; folderId?: string; isGalleryPhoto?: boolean } = {}
     let batchMeta: UploadMeta[] | null = null
     let responded = false
     let fileSeen = false
@@ -134,13 +134,14 @@ export async function handleUpload(req: AuthRequest, res: Response, next: NextFu
       mimeType: item.mimeType,
       sizeBytes: BigInt(item.sizeBytes),
       folderId: item.folderId,
+      isGalleryPhoto: (item as any).isGalleryPhoto === true || (item as any).isGalleryPhoto === 'true',
     })) as UploadMeta[]
 
     const metaForFile = (fieldName: string, info: { filename: string; mimeType: string }) => {
       if (batchMeta) return batchMeta.find((item) => item.fieldName === fieldName)
       const sizeBytes = fields.sizeBytes
       if (!sizeBytes) return null
-      return { fieldName, sizeBytes, fileName: fields.fileName || info.filename, mimeType: fields.mimeType || info.mimeType || 'application/octet-stream', folderId: fields.folderId }
+      return { fieldName, sizeBytes, fileName: fields.fileName || info.filename, mimeType: fields.mimeType || info.mimeType || 'application/octet-stream', folderId: fields.folderId, isGalleryPhoto: fields.isGalleryPhoto }
     }
 
     const uploadOne = async (fieldName: string, fileStream: NodeJS.ReadableStream, info: { filename: string; mimeType: string }) => {
@@ -176,7 +177,7 @@ export async function handleUpload(req: AuthRequest, res: Response, next: NextFu
         }
         reservedBytesByAccount.set(account.id, (reservedBytesByAccount.get(account.id) ?? 0n) + meta.sizeBytes)
 
-        const session = await prisma.uploadSession.create({ data: { userId: req.user!.id, targetConnectedAccountId: account.id, folderId, fileName, mimeType: meta.mimeType, sizeBytes: meta.sizeBytes, status: 'uploading' } })
+        const session = await prisma.uploadSession.create({ data: { userId: req.user!.id, targetConnectedAccountId: account.id, folderId, fileName, mimeType: meta.mimeType, sizeBytes: meta.sizeBytes, isGalleryPhoto: (meta as any).isGalleryPhoto ?? false, status: 'uploading' } })
         logUpload('file upload started', { sessionId: session.id, accountId: account.id, fileName, sizeBytes: meta.sizeBytes.toString() })
         const chunks: Buffer[] = []
         fileStream.on('data', (chunk: Buffer) => {
@@ -247,7 +248,7 @@ export async function handleUpload(req: AuthRequest, res: Response, next: NextFu
           return
         }
 
-        const file = account.provider === 's3' ? null : await prisma.file.create({ data: { userId: req.user!.id, connectedAccountId: account.id, folderId, provider: 'google_drive', providerFileId, name: uploadedName, mimeType: uploadedMimeType, sizeBytes: meta.sizeBytes } })
+        const file = account.provider === 's3' ? null : await prisma.file.create({ data: { userId: req.user!.id, connectedAccountId: account.id, folderId, provider: 'google_drive', providerFileId, name: uploadedName, mimeType: uploadedMimeType, sizeBytes: meta.sizeBytes, isGalleryPhoto: (meta as any).isGalleryPhoto ?? false } })
         if (file) {
           logUpload('database file created', { sessionId: session.id, fileId: file.id, accountId: account.id })
           completed.push({ ...file, sizeBytes: file.sizeBytes.toString() })
@@ -267,6 +268,7 @@ export async function handleUpload(req: AuthRequest, res: Response, next: NextFu
       if (name === 'fileName') fields.fileName = value
       if (name === 'mimeType') fields.mimeType = value
       if (name === 'folderId') fields.folderId = value
+      if (name === 'isGalleryPhoto') fields.isGalleryPhoto = value === 'true'
       if (name === 'filesMeta') batchMeta = parseBatchMeta(value)
     })
 
@@ -313,7 +315,8 @@ uploadRouter.post('/resumable/init', requireAuth, async (req: AuthRequest, res, 
       mimeType: z.string().min(1),
       sizeBytes: z.string(),
       folderId: z.string().nullable().optional(),
-      targetAccountId: z.string().nullable().optional()
+      targetAccountId: z.string().nullable().optional(),
+      isGalleryPhoto: z.boolean().optional()
     }).parse(req.body)
 
     const sizeBytes = BigInt(body.sizeBytes)
@@ -341,6 +344,7 @@ uploadRouter.post('/resumable/init', requireAuth, async (req: AuthRequest, res, 
           fileName: body.fileName,
           mimeType: body.mimeType,
           sizeBytes,
+          isGalleryPhoto: body.isGalleryPhoto ?? false,
           status: 'uploading'
         }
       })
@@ -392,6 +396,7 @@ uploadRouter.post('/resumable/init', requireAuth, async (req: AuthRequest, res, 
         fileName: body.fileName,
         mimeType: body.mimeType,
         sizeBytes,
+        isGalleryPhoto: body.isGalleryPhoto ?? false,
         status: 'uploading',
         googleSessionUri: sessionUri
       }
@@ -531,7 +536,8 @@ uploadRouter.put('/resumable/chunk/:id', requireAuth, async (req: AuthRequest, r
             providerFileId: fileMeta.id,
             name: fileMeta.name || session.fileName,
             mimeType: fileMeta.mimeType || session.mimeType,
-            sizeBytes: totalBytes
+            sizeBytes: totalBytes,
+            isGalleryPhoto: session.isGalleryPhoto
           }
         })
       }
@@ -607,7 +613,8 @@ uploadRouter.post('/resumable/confirm/:id', requireAuth, async (req: AuthRequest
           providerFileId: body.fileId,
           name: body.name || session.fileName,
           mimeType: body.mimeType || session.mimeType,
-          sizeBytes: session.sizeBytes
+          sizeBytes: session.sizeBytes,
+          isGalleryPhoto: session.isGalleryPhoto
         }
       })
     }

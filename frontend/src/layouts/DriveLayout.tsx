@@ -39,7 +39,7 @@ import LightModeIcon from '@mui/icons-material/LightMode'
 import NotificationsIcon from '@mui/icons-material/Notifications'
 import FolderIcon from '@mui/icons-material/Folder'
 import PieChartIcon from '@mui/icons-material/PieChart'
-import ShareIcon from '@mui/icons-material/Share'
+import PhotoIcon from '@mui/icons-material/Photo'
 import DeleteIcon from '@mui/icons-material/Delete'
 import HistoryIcon from '@mui/icons-material/History'
 import SettingsIcon from '@mui/icons-material/Settings'
@@ -67,7 +67,7 @@ const SIDEBAR_WIDTH = 280
 const navItems = [
   { label: 'All Files', icon: <FolderIcon />, href: '/all-files' },
   { label: 'Quota Tracker', icon: <PieChartIcon />, href: '/quota' },
-  { label: 'Shared With Me', icon: <ShareIcon />, href: '/shared' },
+  { label: 'Photos', icon: <PhotoIcon />, href: '/photos' },
   { label: 'Starred', icon: <StarIcon />, href: '/starred', disabled: true },
   { label: 'Recycle Bin', icon: <DeleteIcon />, href: '/trash' },
   { label: 'Activity Log', icon: <HistoryIcon />, href: '/activity' },
@@ -78,7 +78,7 @@ const navItems = [
 const mobileNavItems = [
   { label: 'Files', icon: <FolderIcon />, href: '/all-files', value: '/all-files' },
   { label: 'Quota', icon: <PieChartIcon />, href: '/quota', value: '/quota' },
-  { label: 'Shared', icon: <ShareIcon />, href: '/shared', value: '/shared' },
+  { label: 'Photos', icon: <PhotoIcon />, href: '/photos', value: '/photos' },
   { label: 'Settings', icon: <SettingsIcon />, href: '/settings', value: '/settings' },
 ]
 

@@ -10,7 +10,7 @@ import { QuotaTrackerPage } from '@/pages/QuotaTrackerPage'
 import { RecentPage } from '@/pages/RecentPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { SettingsPage } from '@/pages/SettingsPage'
-import { SharedPage } from '@/pages/SharedPage'
+import { PhotosPage } from '@/pages/PhotosPage'
 import { StarredPage } from '@/pages/StarredPage'
 import { PublicFilePage } from '@/pages/PublicFilePage'
 import { ApiManagementPage } from '@/pages/ApiManagementPage'
@@ -34,7 +34,7 @@ function App() {
           <Route index element={<Navigate to="/all-files" replace />} />
           <Route path="all-files" element={<AllFilesPage />} />
           <Route path="quota" element={<QuotaTrackerPage />} />
-          <Route path="shared" element={<SharedPage />} />
+          <Route path="photos" element={<PhotosPage />} />
           <Route path="recent" element={<RecentPage />} />
           <Route path="starred" element={<StarredPage />} />
           <Route path="archived" element={<ArchivedPage />} />
