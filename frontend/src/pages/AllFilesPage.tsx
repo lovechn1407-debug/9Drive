@@ -709,7 +709,26 @@ export function AllFilesPage() {
         )}
       </Box>
 
-
+      {/* Floating Upload Button */}
+      <Button
+        variant="contained"
+        startIcon={<CloudUploadIcon sx={{ fontSize: '1.5rem !important' }} />}
+        onClick={() => setUploadOpen(true)}
+        sx={{
+          position: 'fixed',
+          bottom: { xs: 96, sm: 48 },
+          right: { xs: 24, sm: 48 },
+          boxShadow: 6,
+          zIndex: 1000,
+          px: 4,
+          py: 2,
+          fontSize: '1rem',
+          fontWeight: 700,
+          borderRadius: 9999, // Nice pill shape instead of strict rectangular
+        }}
+      >
+        Upload
+      </Button>
 
       {/* Context Menus */}
       <EmptyAreaContextMenu x={emptyContextMenu.x} y={emptyContextMenu.y} open={emptyContextMenu.open} canPasteFolder={Boolean(cutFolder)} onClose={() => setEmptyContextMenu({ x: 0, y: 0, open: false })} onUpload={() => { setUploadOpen(true); setEmptyContextMenu({ x: 0, y: 0, open: false }) }} onCreateFolder={() => { setFolderOpen(true); setEmptyContextMenu({ x: 0, y: 0, open: false }) }} onPasteFolder={() => { pasteFolder().catch((e) => setMessage(e instanceof Error ? e.message : 'Failed to paste')); setEmptyContextMenu({ x: 0, y: 0, open: false }) }} />

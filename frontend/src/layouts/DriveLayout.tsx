@@ -570,23 +570,23 @@ export function DriveLayout() {
       {/* Upload progress panel */}
       {uploadProgress.open && (
         <Paper
-          elevation={24}
+          elevation={12}
           sx={{
             position: 'fixed',
-            bottom: { xs: 80, lg: 32 },
-            right: { xs: 16, sm: 32 },
-            left: { xs: 16, sm: 'auto' },
-            width: { sm: 420 },
+            bottom: { xs: 164, sm: 112 },
+            right: { xs: 24, sm: 48 },
+            left: { xs: 24, sm: 'auto' },
+            width: { sm: 400 },
             maxHeight: '70dvh',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            borderRadius: 3,
+            borderRadius: '16px',
             zIndex: 2000,
-            border: '1px solid',
+            border: 1,
             borderColor: 'divider',
-            backdropFilter: 'blur(20px)',
-            bgcolor: mode === 'dark' ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.9)',
+            backdropFilter: 'blur(16px)',
+            bgcolor: mode === 'dark' ? 'rgba(20,20,20,0.9)' : 'rgba(255,255,255,0.95)',
           }}
         >
           {/* Header */}
