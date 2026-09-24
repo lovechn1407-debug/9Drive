@@ -41,10 +41,8 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { apiFetch } from '@/lib/api'
 import { useUpload } from '@/context/UploadContext'
 import { useDriveLayoutActions } from '@/layouts/DriveLayout'
-import { TransitionProps } from '@mui/material/transitions'
-
 const Transition = forwardRef(function Transition(
-  props: TransitionProps & {
+  props: any & {
     children: React.ReactElement<any, any>;
   },
   ref: React.Ref<unknown>,
