@@ -19,7 +19,21 @@ import { systemRouter } from './modules/system/system.routes.js'
 export const app = express()
 app.set('trust proxy', true)
 
-app.use(cors({ origin: env.FRONTEND_URL }))
+const allowedOrigins = [
+  env.FRONTEND_URL,
+  'capacitor://localhost',
+  'http://localhost',
+  'https://localhost',
+]
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    return callback(null, false)
+  },
+  credentials: true,
+}))
 app.use(express.json({ limit: '1mb' }))
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
