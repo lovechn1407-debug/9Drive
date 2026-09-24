@@ -6,7 +6,7 @@ export type UploadProgressStatus = 'uploading' | 'done' | 'error' | 'partial'
 export type UploadProgressFile = { name: string; size: number; percent: number; status: UploadProgressStatus }
 export type UploadProgressState = { open: boolean; fileName: string; percent: number; status: UploadProgressStatus; files: UploadProgressFile[] }
 
-type ResumableSession = { sessionId: string; file: File; folderId?: string | null; targetAccountId?: string | null }
+type ResumableSession = { sessionId: string; file: File; folderId?: string | null; targetAccountId?: string | null; uploadUrl?: string }
 
 type UploadContextType = {
   uploadProgress: UploadProgressState
@@ -31,16 +31,17 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     const CHUNK_SIZE = 5 * 1024 * 1024 // 5MB chunks (must be multiple of 256KB for Google Drive)
     let sessionId = sessionIdToRetry || ''
     let startOffset = 0
+    let uploadUrl = resumableSessions[file.name]?.uploadUrl
 
     // Pre-save session parameters so that retry is functional even if the init API call fails
     setResumableSessions(prev => ({
       ...prev,
-      [file.name]: { sessionId, file, folderId, targetAccountId }
+      [file.name]: { sessionId, file, folderId, targetAccountId, uploadUrl }
     }))
 
     // 1. Initialize or get status
     if (!sessionId) {
-      const initData = await apiFetch<{ sessionId: string; provider: string }>('/uploads/resumable/init', {
+      const initData = await apiFetch<{ sessionId: string; provider: string; uploadUrl?: string }>('/uploads/resumable/init', {
         method: 'POST',
         body: JSON.stringify({
           fileName: file.name,
@@ -51,10 +52,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         })
       })
       sessionId = initData.sessionId
-      // Update session with the active sessionId
+      uploadUrl = initData.uploadUrl
+      
+      // Update session with the active sessionId and direct upload URL
       setResumableSessions(prev => ({
         ...prev,
-        [file.name]: { sessionId, file, folderId, targetAccountId }
+        [file.name]: { sessionId, file, folderId, targetAccountId, uploadUrl }
       }))
     } else {
       const statusData = await apiFetch<{ status: string; offset: string }>(`/uploads/resumable/status/${sessionId}`)
@@ -70,30 +73,67 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       const endOffset = Math.min(startOffset + CHUNK_SIZE, file.size)
       const chunk = file.slice(startOffset, endOffset)
 
-      // We use raw fetch with authorization header for binary stream upload
-      const response = await fetch(`${API_URL}/uploads/resumable/chunk/${sessionId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${getAccessToken()}`,
-          'Content-Range': `bytes ${startOffset}-${endOffset - 1}/${file.size}`,
-          'Content-Length': String(chunk.size)
-        },
-        body: chunk
-      })
+      if (uploadUrl) {
+        // DIRECT-TO-CLOUD: Bypassing backend!
+        const response = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Range': `bytes ${startOffset}-${endOffset - 1}/${file.size}`,
+            'Content-Length': String(chunk.size)
+          },
+          body: chunk
+        })
 
-      if (!response.ok) {
-        throw new Error('Chunk upload failed')
+        if (response.status === 308) { // Incomplete
+          const range = response.headers.get('range')
+          if (range) {
+            const parts = range.split('-')
+            startOffset = Number(parts[1]) + 1
+          } else {
+            startOffset = endOffset
+          }
+          const percent = Math.min(99, Math.round((startOffset / file.size) * 100))
+          onProgress(percent)
+        } else if (response.ok) { // Finished
+          const fileMeta = await response.json() as { id: string; name: string; mimeType: string }
+          
+          // Confirm with backend to create MySQL record
+          await apiFetch(`/uploads/resumable/confirm/${sessionId}`, {
+            method: 'POST',
+            body: JSON.stringify({ fileId: fileMeta.id, name: fileMeta.name, mimeType: fileMeta.mimeType })
+          })
+          
+          onProgress(100)
+          break
+        } else {
+          throw new Error(`Direct upload failed with status ${response.status}`)
+        }
+      } else {
+        // PROXY METHOD: Fallback for S3 or legacy sessions
+        const response = await fetch(`${API_URL}/uploads/resumable/chunk/${sessionId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${getAccessToken()}`,
+            'Content-Range': `bytes ${startOffset}-${endOffset - 1}/${file.size}`,
+            'Content-Length': String(chunk.size)
+          },
+          body: chunk
+        })
+
+        if (!response.ok) {
+          throw new Error('Chunk upload failed')
+        }
+
+        const resData = await response.json() as { status: string; offset?: string }
+        if (resData.status === 'completed') {
+          onProgress(100)
+          break
+        }
+
+        startOffset = Number(resData.offset)
+        const percent = Math.min(99, Math.round((startOffset / file.size) * 100))
+        onProgress(percent)
       }
-
-      const resData = await response.json() as { status: string; offset?: string }
-      if (resData.status === 'completed') {
-        onProgress(100)
-        break
-      }
-
-      startOffset = Number(resData.offset)
-      const percent = Math.min(99, Math.round((startOffset / file.size) * 100))
-      onProgress(percent)
     }
   }
 

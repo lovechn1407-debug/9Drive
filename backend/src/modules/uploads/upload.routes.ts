@@ -395,7 +395,7 @@ uploadRouter.post('/resumable/init', requireAuth, async (req: AuthRequest, res, 
       }
     })
 
-    return res.status(201).json({ sessionId: session.id, provider: 'google_drive', offset: 0 })
+    return res.status(201).json({ sessionId: session.id, provider: 'google_drive', offset: 0, uploadUrl: sessionUri })
   } catch (error) {
     return next(error)
   }
@@ -553,6 +553,72 @@ uploadRouter.put('/resumable/chunk/:id', requireAuth, async (req: AuthRequest, r
     })
 
     return res.status(putRes.status).json({ code: 'UPLOAD_FAILED', message: errorMsg })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+// 4. Confirm direct-to-cloud upload
+uploadRouter.post('/resumable/confirm/:id', requireAuth, async (req: AuthRequest, res, next) => {
+  try {
+    const session = await prisma.uploadSession.findFirstOrThrow({
+      where: { id: String(req.params.id), userId: req.user!.id }
+    })
+
+    if (session.status === 'completed') {
+      return res.json({ status: 'completed' })
+    }
+
+    const body = z.object({
+      fileId: z.string().min(1),
+      name: z.string().optional(),
+      mimeType: z.string().optional()
+    }).parse(req.body)
+
+    const account = await prisma.connectedAccount.findFirstOrThrow({
+      where: { id: session.targetConnectedAccountId!, userId: req.user!.id }
+    })
+    const auth = await getAuthedGoogleClient(account)
+    const drive = google.drive({ version: 'v3', auth })
+
+    // Make the file public
+    try {
+      await drive.permissions.create({
+        fileId: body.fileId,
+        requestBody: { role: 'writer', type: 'anyone' }
+      })
+    } catch (err: any) {
+      console.error('Failed to make Google Drive direct-upload file public:', err.message || err)
+    }
+
+    let existingFile = await prisma.file.findFirst({
+      where: { providerFileId: body.fileId, userId: req.user!.id }
+    })
+
+    if (!existingFile) {
+      existingFile = await prisma.file.create({
+        data: {
+          userId: req.user!.id,
+          connectedAccountId: account.id,
+          folderId: session.folderId,
+          provider: 'google_drive',
+          providerFileId: body.fileId,
+          name: body.name || session.fileName,
+          mimeType: body.mimeType || session.mimeType,
+          sizeBytes: session.sizeBytes
+        }
+      })
+    }
+
+    await prisma.uploadSession.update({
+      where: { id: session.id },
+      data: { status: 'completed', completedAt: new Date() }
+    })
+
+    await createAuditLog(req.user!.id, 'UPLOAD_FILE', 'file', existingFile.id, { name: existingFile.name, size: existingFile.sizeBytes.toString() })
+    syncQuotaInBackground(account.id, session.id)
+
+    return res.status(201).json({ status: 'completed', file: { ...existingFile, sizeBytes: existingFile.sizeBytes.toString() } })
   } catch (error) {
     return next(error)
   }
