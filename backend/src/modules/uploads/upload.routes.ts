@@ -364,6 +364,8 @@ uploadRouter.post('/resumable/init', requireAuth, async (req: AuthRequest, res, 
     headers.set('Content-Type', 'application/json')
     headers.set('X-Upload-Content-Type', body.mimeType)
     headers.set('X-Upload-Content-Length', sizeBytes.toString())
+    // Extremely important: Google requires the Origin header here to enable CORS on the subsequent PUTs!
+    headers.set('Origin', env.FRONTEND_URL)
 
     const initRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
       method: 'POST',
