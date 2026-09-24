@@ -9,6 +9,8 @@ import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
+import ListItem from '@mui/material/ListItem'
+import CircularProgress from '@mui/material/CircularProgress'
 import Avatar from '@mui/material/Avatar'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
@@ -568,25 +570,31 @@ export function DriveLayout() {
       {/* Upload progress panel */}
       {uploadProgress.open && (
         <Paper
-          elevation={8}
+          elevation={24}
           sx={{
             position: 'fixed',
-            bottom: { xs: 80, lg: 16 },
-            right: 16,
+            bottom: { xs: 80, lg: 32 },
+            right: { xs: 16, sm: 32 },
             left: { xs: 16, sm: 'auto' },
-            width: { sm: 400 },
+            width: { sm: 420 },
             maxHeight: '70dvh',
+            display: 'flex',
+            flexDirection: 'column',
             overflow: 'hidden',
-            borderRadius: 4,
-            zIndex: 70,
+            borderRadius: 3,
+            zIndex: 2000,
+            border: '1px solid',
+            borderColor: 'divider',
+            backdropFilter: 'blur(20px)',
+            bgcolor: mode === 'dark' ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.9)',
           }}
         >
           {/* Header */}
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
             <Stack direction="row" alignItems="center" spacing={1}>
               {uploadProgress.status === 'done' ? <CheckCircleIcon color="success" fontSize="small" /> :
                uploadProgress.status === 'error' || uploadProgress.status === 'partial' ? <ErrorIcon color="error" fontSize="small" /> :
-               <UploadIcon color="primary" fontSize="small" />}
+               <CircularProgress size={16} thickness={5} />}
               <Typography variant="body2" fontWeight={700}>{uploadLabel}</Typography>
             </Stack>
             <Stack direction="row">
@@ -600,44 +608,37 @@ export function DriveLayout() {
           </Stack>
 
           <Collapse in={!uploadCollapsed}>
-            <Box sx={{ p: 2 }}>
-              {/* Overall progress */}
-              <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                <Typography variant="caption" noWrap fontWeight={600} sx={{ flex: 1, mr: 1 }}>{uploadProgress.fileName}</Typography>
-                <Typography variant="caption" color="text.secondary">{uploadProgress.percent}%</Typography>
-              </Stack>
-              <LinearProgress variant="determinate" value={uploadProgress.percent} color={uploadStatusColor} sx={{ mb: 2 }} />
+            <Box sx={{ p: 0, bgcolor: 'transparent' }}>
+              {/* Overall progress - only if multiple files */}
+              {uploadProgress.files.length > 1 && (
+                <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+                  <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+                    <Typography variant="caption" fontWeight={700}>Total Progress ({uploadProgress.files.filter(f => f.status === 'done').length}/{uploadProgress.files.length})</Typography>
+                    <Typography variant="caption" fontWeight={700}>{uploadProgress.percent}%</Typography>
+                  </Stack>
+                  <LinearProgress variant="determinate" value={uploadProgress.percent} color={uploadStatusColor} sx={{ height: 6, borderRadius: 3 }} />
+                </Box>
+              )}
 
               {/* Per-file list */}
               {uploadProgress.files.length > 0 && (
-                <Stack spacing={1} sx={{ maxHeight: 240, overflowY: 'auto' }}>
+                <List disablePadding sx={{ maxHeight: 300, overflowY: 'auto' }}>
                   {uploadProgress.files.map((file, i) => (
-                    <Paper key={`${file.name}-${file.size}-${i}`} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="caption" fontWeight={600} noWrap sx={{ flex: 1, mr: 1 }} title={file.name}>{file.name}</Typography>
-                        <Stack direction="row" alignItems="center" spacing={0.5}>
-                          {file.status === 'error' && (
-                            <Button size="small" color="error" variant="contained" sx={{ fontSize: '0.65rem', height: 22, px: 1, py: 0, minWidth: 0, borderRadius: 9999 }} onClick={() => retryFailedUpload(file.name)}>
-                              Retry
-                            </Button>
-                          )}
-                          <Chip
-                            label={file.status === 'error' ? 'Failed' : file.status === 'done' ? 'Done' : file.percent >= 99 ? 'Processing' : `${file.percent}%`}
-                            size="small"
-                            color={file.status === 'error' ? 'error' : file.status === 'done' ? 'success' : 'primary'}
-                            sx={{ fontSize: '0.65rem', height: 20 }}
-                          />
-                        </Stack>
-                      </Stack>
-                      <LinearProgress
-                        variant="determinate"
-                        value={file.percent}
-                        color={file.status === 'error' ? 'error' : file.status === 'done' ? 'success' : 'primary'}
-                        sx={{ mt: 1 }}
+                    <ListItem key={`${file.name}-${i}`} divider={i < uploadProgress.files.length - 1} sx={{ py: 1.5 }}>
+                      <ListItemIcon sx={{ minWidth: 40 }}>
+                        {file.status === 'done' ? <CheckCircleIcon color="success" /> : file.status === 'error' ? <ErrorIcon color="error" /> : <CircularProgress variant="determinate" value={file.percent} size={24} thickness={5} />}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={file.name} 
+                        secondary={file.status === 'error' ? 'Failed' : file.status === 'done' ? 'Complete' : `${file.percent}%`}
+                        slotProps={{ primary: { noWrap: true, variant: 'body2', fontWeight: 600 }, secondary: { variant: 'caption', fontWeight: 500 } }} 
                       />
-                    </Paper>
+                      {file.status === 'error' && (
+                         <Button size="small" variant="outlined" color="error" onClick={() => retryFailedUpload(file.name)}>Retry</Button>
+                      )}
+                    </ListItem>
                   ))}
-                </Stack>
+                </List>
               )}
             </Box>
           </Collapse>
