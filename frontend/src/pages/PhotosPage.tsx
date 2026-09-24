@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, forwardRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
@@ -10,9 +10,7 @@ import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate'
 import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import Dialog from '@mui/material/Dialog'
-import Slide from '@mui/material/Slide'
-import AppBar from '@mui/material/AppBar'
-import Toolbar from '@mui/material/Toolbar'
+
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemIcon from '@mui/material/ListItemIcon'
@@ -26,12 +24,12 @@ import Divider from '@mui/material/Divider'
 import FolderSpecialIcon from '@mui/icons-material/FolderSpecial'
 import SyncIcon from '@mui/icons-material/Sync'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import StarOutlineIcon from '@mui/icons-material/StarOutline'
+import StarBorderIcon from '@mui/icons-material/StarBorder'
 import ShareIcon from '@mui/icons-material/Share'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
-import ImageIcon from '@mui/icons-material/Image'
+
 import InfoIcon from '@mui/icons-material/Info'
 import SearchIcon from '@mui/icons-material/Search'
 import LinkIcon from '@mui/icons-material/Link'
@@ -41,14 +39,6 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { apiFetch } from '@/lib/api'
 import { useUpload } from '@/context/UploadContext'
 import { useDriveLayoutActions } from '@/layouts/DriveLayout'
-const Transition = forwardRef(function Transition(
-  props: any & {
-    children: React.ReactElement<any, any>;
-  },
-  ref: React.Ref<unknown>,
-) {
-  return <Slide direction="up" ref={ref} {...props} />
-})
 
 export function PhotosPage() {
   const [files, setFiles] = useState<any[]>([])
@@ -286,7 +276,7 @@ function PhotoViewer({ file, onClose }: { file: any, onClose: () => void }) {
   })
 
   return (
-    <Dialog fullScreen open TransitionComponent={Transition} PaperProps={{ sx: { bgcolor: 'black', color: 'white' } }}>
+    <Dialog fullScreen open PaperProps={{ sx: { bgcolor: 'black', color: 'white' } }}>
       {/* Top Bar */}
       <Box sx={{ display: 'flex', alignItems: 'center', p: 1, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, bgcolor: 'rgba(0,0,0,0.5)' }}>
         <IconButton onClick={onClose} sx={{ color: 'white' }}>
@@ -297,7 +287,7 @@ function PhotoViewer({ file, onClose }: { file: any, onClose: () => void }) {
           <Typography variant="caption" noWrap sx={{ opacity: 0.7 }}>{dateStr}</Typography>
         </Box>
         <IconButton sx={{ color: 'white' }}>
-          <StarOutlineIcon />
+          <StarBorderIcon />
         </IconButton>
       </Box>
 
