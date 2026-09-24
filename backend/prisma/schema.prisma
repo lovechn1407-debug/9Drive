@@ -214,6 +214,7 @@ model File {
   mimeType           String           @map("mime_type") @db.VarChar(191)
   sizeBytes          BigInt           @map("size_bytes")
   isGalleryPhoto     Boolean          @default(false) @map("is_gallery_photo")
+  thumbnailLink      String?          @map("thumbnail_link") @db.Text
   checksum           String?          @db.VarChar(191)
   status             String           @default("active") @db.VarChar(32)
   createdAt          DateTime         @default(now()) @map("created_at")

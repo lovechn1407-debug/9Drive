@@ -5,8 +5,6 @@ import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
-import useMediaQuery from '@mui/material/useMediaQuery'
-import { useTheme } from '@mui/material/styles'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate'
 import { apiFetch } from '@/lib/api'
@@ -19,11 +17,7 @@ export function PhotosPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { uploadProgress, uploadFiles } = useUpload()
   const { setHeaderActions } = useDriveLayoutActions()
-  const theme = useTheme()
-  const matchDownSm = useMediaQuery(theme.breakpoints.down('sm'))
-  const matchDownMd = useMediaQuery(theme.breakpoints.down('md'))
-
-  const cols = matchDownSm ? 2 : matchDownMd ? 3 : 4
+  const cols = 4
 
   useEffect(() => {
     setHeaderActions(
@@ -73,7 +67,7 @@ export function PhotosPage() {
   }
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: { xs: 2, sm: 4 }, overflowY: 'auto' }}>
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 0, overflowY: 'auto' }}>
       <input
         type="file"
         multiple
@@ -96,7 +90,6 @@ export function PhotosPage() {
         </Box>
       ) : (
         <Box>
-          <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>Gallery</Typography>
           <ImageList cols={cols} gap={0} sx={{ m: 0 }}>
             {files.map((file) => (
               <PhotoItem key={file.id} file={file} />
@@ -135,9 +128,10 @@ export function PhotosPage() {
 }
 
 function PhotoItem({ file }: { file: any }) {
-  const [url, setUrl] = useState('')
+  const [url, setUrl] = useState(file.thumbnailLink || '')
 
   useEffect(() => {
+    if (url) return // Skip fetching preview token if we already have a thumbnailLink
     apiFetch<{ path: string }>(`/files/${file.id}/preview-token`, { method: 'POST' })
       .then(res => {
         setUrl(`${import.meta.env.VITE_API_URL}${res.path}`)
@@ -146,7 +140,7 @@ function PhotoItem({ file }: { file: any }) {
   }, [file.id])
 
   return (
-    <ImageListItem sx={{ overflow: 'hidden', cursor: 'pointer', aspectRatio: '1/1', position: 'relative', '&:hover': { opacity: 0.9 } }}>
+    <ImageListItem sx={{ overflow: 'hidden', cursor: 'pointer', aspectRatio: '1/1', position: 'relative', '&:hover': { opacity: 0.8 } }}>
       {url ? (
         <img
           src={url}

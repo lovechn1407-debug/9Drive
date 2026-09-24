@@ -527,6 +527,8 @@ uploadRouter.put('/resumable/chunk/:id', requireAuth, async (req: AuthRequest, r
       })
 
       if (!existingFile) {
+        const metadata = await drive.files.get({ fileId: fileMeta.id, fields: 'thumbnailLink' })
+        const thumbnailLink = metadata.data.thumbnailLink ?? null
         existingFile = await prisma.file.create({
           data: {
             userId: req.user!.id,
@@ -537,7 +539,8 @@ uploadRouter.put('/resumable/chunk/:id', requireAuth, async (req: AuthRequest, r
             name: fileMeta.name || session.fileName,
             mimeType: fileMeta.mimeType || session.mimeType,
             sizeBytes: totalBytes,
-            isGalleryPhoto: session.isGalleryPhoto
+            isGalleryPhoto: session.isGalleryPhoto,
+            thumbnailLink
           }
         })
       }
@@ -603,7 +606,9 @@ uploadRouter.post('/resumable/confirm/:id', requireAuth, async (req: AuthRequest
       where: { providerFileId: body.fileId, userId: req.user!.id }
     })
 
-    if (!existingFile) {
+      const metadata = await drive.files.get({ fileId: body.fileId, fields: 'thumbnailLink' })
+      const thumbnailLink = metadata.data.thumbnailLink ?? null
+      
       existingFile = await prisma.file.create({
         data: {
           userId: req.user!.id,
@@ -614,7 +619,8 @@ uploadRouter.post('/resumable/confirm/:id', requireAuth, async (req: AuthRequest
           name: body.name || session.fileName,
           mimeType: body.mimeType || session.mimeType,
           sizeBytes: session.sizeBytes,
-          isGalleryPhoto: session.isGalleryPhoto
+          isGalleryPhoto: session.isGalleryPhoto,
+          thumbnailLink
         }
       })
     }

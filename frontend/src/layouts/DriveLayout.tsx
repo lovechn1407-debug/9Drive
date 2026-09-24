@@ -233,6 +233,7 @@ function SidebarContent({
 export function DriveLayout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const isPhotosPage = location.pathname === '/photos'
   const [searchParams] = useSearchParams()
   const { mode, toggleTheme } = useMuiTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -490,7 +491,7 @@ export function DriveLayout() {
         </AppBar>
 
         {/* Page content */}
-        <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, sm: 3, lg: 4 }, pb: { xs: 12, lg: 4 } }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', p: isPhotosPage ? 0 : { xs: 2, sm: 3, lg: 4 }, pb: isPhotosPage ? { xs: 12, lg: 4 } : { xs: 12, lg: 4 } }}>
           <Outlet context={{ setHeaderActions } satisfies DriveLayoutContext} />
         </Box>
 
