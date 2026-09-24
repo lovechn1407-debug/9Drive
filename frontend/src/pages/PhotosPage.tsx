@@ -98,20 +98,9 @@ export function PhotosPage() {
         <Box>
           <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>Gallery</Typography>
           <ImageList variant="masonry" cols={cols} gap={16}>
-            {files.map((file) => {
-              // We need the preview URL
-              const [previewUrl, setPreviewUrl] = useState('')
-              
-              // We will just use an effect or direct URL
-              // For simplicity, let's fetch a view URL or use token-less preview if it's public
-              // Since it's user authed, we can use `/files/:id/download` with auth headers, 
-              // BUT for an <img> tag, we can't easily pass headers unless we use a blob URL.
-              // To avoid blob complexity, let's just use the `apiFetch` to get a temporary preview token.
-              
-              return (
-                <PhotoItem key={file.id} file={file} />
-              )
-            })}
+            {files.map((file) => (
+              <PhotoItem key={file.id} file={file} />
+            ))}
           </ImageList>
         </Box>
       )}
