@@ -39,8 +39,19 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { apiFetch, API_URL } from '@/lib/api'
 import { useUpload } from '@/context/UploadContext'
 import { useDriveLayoutActions } from '@/layouts/DriveLayout'
-import { Filesystem } from '@capacitor/filesystem'
+import { Filesystem, Directory } from '@capacitor/filesystem'
 import { Capacitor } from '@capacitor/core'
+
+// Known Android photo directories to scan (relative to external storage root)
+const PHONE_PHOTO_DIRS = [
+  { name: 'Camera', path: 'DCIM/Camera' },
+  { name: 'Screenshots', path: 'Pictures/Screenshots' },
+  { name: 'WhatsApp Images', path: 'Pictures/WhatsApp Images' },
+  { name: 'Downloads', path: 'Download' },
+  { name: 'Pictures', path: 'Pictures' },
+]
+
+type DeviceFolder = { id: number; name: string; path: string; synced: boolean; thumb: string | null; count: number }
 
 export function PhotosPage() {
   const [files, setFiles] = useState<any[]>([])
@@ -54,14 +65,10 @@ export function PhotosPage() {
   const [autoUploadOpen, setAutoUploadOpen] = useState(false)
   const [syncSettingsOpen, setSyncSettingsOpen] = useState(false)
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false)
-
-  // Dummy state for folders
   const [allFoldersSync, setAllFoldersSync] = useState(false)
-  const [folders, setFolders] = useState([
-    { id: 1, name: 'Camera', synced: false, thumb: 'https://images.unsplash.com/photo-1516245834210-c4c142787335?w=100' },
-    { id: 2, name: 'WhatsApp Images', synced: false, thumb: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=100' },
-    { id: 3, name: 'Screenshots', synced: false, thumb: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100' }
-  ])
+  const [permissionGranted, setPermissionGranted] = useState(false)
+  const [foldersLoading, setFoldersLoading] = useState(false)
+  const [folders, setFolders] = useState<DeviceFolder[]>([])
 
   useEffect(() => {
     setHeaderActions(
@@ -77,14 +84,55 @@ export function PhotosPage() {
     return () => setHeaderActions(null)
   }, [setHeaderActions])
 
+  // Request storage permission visibly on screen and scan real device folders
   useEffect(() => {
-    if (autoUploadOpen && Capacitor.isNativePlatform()) {
-      Filesystem.requestPermissions().then(res => {
-        console.log('Storage permissions status:', res)
-      }).catch(err => {
-        console.error('Permission request failed:', err)
-      })
+    if (!autoUploadOpen) return
+    if (!Capacitor.isNativePlatform()) {
+      setFolders([
+        { id: 1, name: 'Camera', path: 'DCIM/Camera', synced: false, thumb: null, count: 0 },
+        { id: 2, name: 'Screenshots', path: 'Pictures/Screenshots', synced: false, thumb: null, count: 0 },
+        { id: 3, name: 'Downloads', path: 'Download', synced: false, thumb: null, count: 0 },
+      ])
+      return
     }
+    async function requestPermAndScan() {
+      setFoldersLoading(true)
+      try {
+        const permResult = await Filesystem.requestPermissions()
+        const granted = permResult.publicStorage === 'granted'
+        setPermissionGranted(granted)
+        if (!granted) { setFoldersLoading(false); return }
+        const found: DeviceFolder[] = []
+        for (const dir of PHONE_PHOTO_DIRS) {
+          try {
+            const result = await Filesystem.readdir({ path: dir.path, directory: Directory.ExternalStorage })
+            const imageFiles = result.files.filter(f =>
+              f.type === 'file' && /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(f.name)
+            )
+            if (result.files.length === 0) continue
+            let thumb: string | null = null
+            if (imageFiles.length > 0) {
+              try {
+                const lastImg = imageFiles[imageFiles.length - 1]
+                const fileData = await Filesystem.readFile({
+                  path: `${dir.path}/${lastImg.name}`,
+                  directory: Directory.ExternalStorage,
+                })
+                const mime = lastImg.name.toLowerCase().endsWith('png') ? 'image/png' : 'image/jpeg'
+                thumb = `data:${mime};base64,${fileData.data}`
+              } catch { /* thumbnail failed */ }
+            }
+            found.push({ id: found.length + 1, name: dir.name, path: dir.path, synced: false, thumb, count: imageFiles.length })
+          } catch { /* folder doesn't exist, skip */ }
+        }
+        setFolders(found)
+      } catch (e) {
+        console.error('Permission/scan failed:', e)
+      } finally {
+        setFoldersLoading(false)
+      }
+    }
+    requestPermAndScan()
   }, [autoUploadOpen])
 
   async function loadPhotos() {
@@ -195,27 +243,51 @@ export function PhotosPage() {
       <Dialog open={autoUploadOpen} onClose={() => setAutoUploadOpen(false)} fullWidth maxWidth="sm">
         <Box sx={{ p: 2 }}>
           <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Device folders</Typography>
-          <List>
-            <ListItem>
-              <ListItemText primary="All device folders" secondary="Auto-upload photos from all folders" />
-              <Switch checked={allFoldersSync} onChange={(e) => {
-                setAllFoldersSync(e.target.checked)
-                setFolders(f => f.map(folder => ({ ...folder, synced: e.target.checked })))
-              }} />
-            </ListItem>
-            <Divider sx={{ my: 1 }} />
-            {folders.map(folder => (
-              <ListItem key={folder.id}>
-                <ListItemIcon>
-                  <Avatar src={folder.thumb} variant="rounded" />
-                </ListItemIcon>
-                <ListItemText primary={folder.name} />
-                <Switch checked={folder.synced} onChange={(e) => {
-                  setFolders(f => f.map(fd => fd.id === folder.id ? { ...fd, synced: e.target.checked } : fd))
+
+          {foldersLoading ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 2 }}>
+              <CircularProgress />
+              <Typography variant="body2" color="text.secondary">Scanning device folders...</Typography>
+            </Box>
+          ) : Capacitor.isNativePlatform() && !permissionGranted && folders.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="body2" color="error.main" fontWeight={600}>Storage permission denied</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Please allow storage access from Settings to see your device folders.</Typography>
+            </Box>
+          ) : (
+            <List>
+              <ListItem>
+                <ListItemText primary="All device folders" secondary="Auto-upload photos from all folders" />
+                <Switch checked={allFoldersSync} onChange={(e) => {
+                  setAllFoldersSync(e.target.checked)
+                  setFolders(f => f.map(folder => ({ ...folder, synced: e.target.checked })))
                 }} />
               </ListItem>
-            ))}
-          </List>
+              <Divider sx={{ my: 1 }} />
+              {folders.length === 0 ? (
+                <ListItem><ListItemText primary="No photo folders found on device" /></ListItem>
+              ) : folders.map(folder => (
+                <ListItem key={folder.id}>
+                  <ListItemIcon>
+                    <Avatar
+                      src={folder.thumb ?? undefined}
+                      variant="rounded"
+                      sx={{ width: 48, height: 48, bgcolor: 'action.hover' }}
+                    >
+                      {!folder.thumb && folder.name[0]}
+                    </Avatar>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={folder.name}
+                    secondary={folder.count > 0 ? `${folder.count} photos` : undefined}
+                  />
+                  <Switch checked={folder.synced} onChange={(e) => {
+                    setFolders(f => f.map(fd => fd.id === folder.id ? { ...fd, synced: e.target.checked } : fd))
+                  }} />
+                </ListItem>
+              ))}
+            </List>
+          )}
         </Box>
         <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
           <Button onClick={() => setAutoUploadOpen(false)} variant="outlined">Cancel</Button>
