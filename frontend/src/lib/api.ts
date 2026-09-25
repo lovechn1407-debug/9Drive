@@ -1,10 +1,19 @@
+import { Capacitor } from '@capacitor/core'
 import { clearAuthSession, getAccessToken, getRefreshToken, setAccessToken } from '@/lib/auth'
 
 const isProd = import.meta.env.PROD
 const rawApiUrl = import.meta.env.VITE_API_URL
-export const API_URL = (rawApiUrl && rawApiUrl !== 'http://localhost:4000')
+const isValidAbsoluteUrl = (url: string | undefined): url is string =>
+  !!url && url.startsWith('http') && url !== 'http://localhost:4000'
+
+// On native Capacitor (Android/iOS), relative paths resolve to capacitor://localhost/...
+// which returns HTML — always use an absolute URL there.
+// On web prod without a configured URL, /api works via the reverse proxy.
+export const API_URL = isValidAbsoluteUrl(rawApiUrl)
   ? rawApiUrl
-  : (isProd ? '/api' : 'http://localhost:4000')
+  : Capacitor.isNativePlatform()
+    ? (() => { console.warn('[9Drive] VITE_API_URL is not set for native build! API calls will fail.'); return rawApiUrl ?? '' })()
+    : isProd ? '/api' : 'http://localhost:4000'
 
 
 type ApiOptions = RequestInit & { skipAuth?: boolean; retry?: boolean }

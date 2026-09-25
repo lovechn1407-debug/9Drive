@@ -36,7 +36,7 @@ import LinkIcon from '@mui/icons-material/Link'
 import PrintIcon from '@mui/icons-material/Print'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 
-import { apiFetch } from '@/lib/api'
+import { apiFetch, API_URL } from '@/lib/api'
 import { useUpload } from '@/context/UploadContext'
 import { useDriveLayoutActions } from '@/layouts/DriveLayout'
 import { Filesystem } from '@capacitor/filesystem'
@@ -268,7 +268,7 @@ function PhotoItem({ file, onClick }: { file: any, onClick: () => void }) {
     if (url) return 
     apiFetch<{ path: string }>(`/files/${file.id}/preview-token`, { method: 'POST' })
       .then(res => {
-        setUrl(`${import.meta.env.VITE_API_URL}${res.path}`)
+        setUrl(`${API_URL}${res.path}`)
       })
       .catch(console.error)
   }, [file.id, url])
@@ -310,7 +310,7 @@ function PhotoViewer({ files, initialIndex, onClose, onDeleted }: { files: any[]
       if (!urls[f.id]) {
         apiFetch<{ path: string }>(`/files/${f.id}/preview-token`, { method: 'POST' })
           .then(res => {
-            setUrls(prev => ({ ...prev, [f.id]: `${import.meta.env.VITE_API_URL}${res.path}` }))
+            setUrls(prev => ({ ...prev, [f.id]: `${API_URL}${res.path}` }))
           })
           .catch(console.error)
       }
@@ -369,7 +369,7 @@ function PhotoViewer({ files, initialIndex, onClose, onDeleted }: { files: any[]
         if (w) w.document.write(`<img src="${url}" style="max-width:100%;" onload="window.print();window.close()" />`)
       }
     } else if (action === 'Use as') {
-      window.open(`${import.meta.env.VITE_API_URL}/files/${file.id}/download`, '_blank')
+      window.open(`${API_URL}/files/${file.id}/download`, '_blank')
     }
   }
 
