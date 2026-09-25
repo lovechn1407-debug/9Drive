@@ -22,6 +22,7 @@ app.set('trust proxy', true)
 const allowedOrigins = [
   env.FRONTEND_URL,
   'capacitor://localhost',
+  'com.ninedrive.app://google-auth',
   'http://localhost',
   'https://localhost',
 ]

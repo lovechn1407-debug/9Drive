@@ -14,6 +14,7 @@ import StorageIcon from '@mui/icons-material/Storage'
 import { GoogleLogo } from '@/components/auth/GoogleLogo'
 import { apiFetch } from '@/lib/api'
 import { setAuthSession, type AuthUser } from '@/lib/auth'
+import { startGoogleOAuth } from '@/lib/googleAuth'
 
 type AuthResponse = { accessToken: string; refreshToken: string; user: AuthUser }
 
@@ -28,13 +29,16 @@ export function LoginPage() {
   async function continueWithGoogle() {
     setGoogleLoading(true)
     setError('')
-    try {
-      const data = await apiFetch<{ url: string }>('/auth/google/url', { skipAuth: true })
-      window.location.href = data.url
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google login failed')
-      setGoogleLoading(false)
-    }
+    await startGoogleOAuth(
+      (data) => {
+        setAuthSession(data.accessToken, data.refreshToken, data.user)
+        navigate('/all-files')
+      },
+      (message) => {
+        setError(message)
+        setGoogleLoading(false)
+      },
+    )
   }
 
   async function submit(event: FormEvent) {

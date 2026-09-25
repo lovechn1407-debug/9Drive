@@ -14,7 +14,7 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: FRONTEND_URL
-        value: capacitor://localhost
+        value: com.ninedrive.app://google-auth
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: TOKEN_ENCRYPTION_KEY
