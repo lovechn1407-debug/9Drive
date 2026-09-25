@@ -18,3 +18,11 @@ frontend/.env.local
 # Local env is non-secret by default, keep example in repo instead.
 frontend/.env.local
 frontend/.env.*.local
+
+# Android build artifacts and local JDK
+frontend/android/jdk21/
+frontend/android/jdk21.zip
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/local.properties
