@@ -23,8 +23,8 @@
     "vite-plugin-pwa": "^1.3.0"
   },
   "dependencies": {
-    "@capacitor/app": "^8.1.1",
-    "@capacitor/browser": "^8.0.4",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/browser": "^7.0.5",
     "@capacitor/core": "^7.0.1",
     "@capacitor/filesystem": "^7.0.0",
     "@emotion/react": "^11.14.0",
